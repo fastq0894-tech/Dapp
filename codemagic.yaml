@@ -1,36 +1,35 @@
 workflows:
-  ios:
-    name: iOS Build
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
+  ios-unsigned:
+    name: iOS Unsigned Build
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
     scripts:
-      - name: Clean and Get Dependencies
+      - name: Get Flutter dependencies
         script: |
-          # This removes the wrong Windows paths from your config files
           flutter clean
           flutter pub get
-      - name: Install pods
+      - name: Install CocoaPods
         script: |
           cd ios
           pod install --repo-update
-      - name: Build IPA (Unsigned)
+      - name: Build iOS (No Codesign)
         script: |
-          # Builds the app without needing Apple Developer portal keys
+          # The --no-codesign flag bypasses the "Development Team" requirement
           flutter build ios --release --no-codesign
       - name: Package Unsigned IPA
         script: |
-          # Creates a downloadable file for you
+          # Xcode creates a .app folder; we must wrap it in a 'Payload' folder to make an .ipa
           mkdir -p Payload
           cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r unsigned_release.ipa Payload
+          zip -r dShift_unsigned.ipa Payload
     artifacts:
       - "*.ipa"
     publishing:
