@@ -1,6 +1,6 @@
 workflows:
-  ios-unsigned-build:
-    name: iOS Unsigned Build
+  ios-unsigned-workflow:
+    name: iOS Unsigned Direct Build
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
@@ -12,24 +12,31 @@ workflows:
       branch_patterns:
         - pattern: main
     scripts:
-      - name: Set up dependencies
+      - name: Set up Flutter dependencies
         script: | 
           flutter clean
           flutter pub get
-      - name: CocoaPods installation
+      - name: Install CocoaPods
         script: | 
           cd ios && pod install --repo-update
-      - name: Build iOS (Force Unsigned)
+      - name: Build iOS (Direct Xcode Bypass)
         script: | 
-          # The --no-codesign flag tells Flutter not to sign the binary
-          # The extra xcodebuild settings ensure Xcode doesn't look for a Team ID
-          flutter build ios --release --no-codesign \
-            --build-name=1.0.0 \
-            --build-number=1
+          # 1. Prepare the Flutter environment
+          flutter build ios --release --no-codesign
+          
+          # 2. Force compile using xcodebuild to skip Flutter's "Team ID" check
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
       - name: Package Unsigned IPA
         script: | 
-          # Flutter produces a .app folder. We wrap it in a 'Payload' folder 
-          # and zip it to create a standard .ipa file structure.
+          # Manually wrap the build into an IPA structure
           mkdir -p Payload
           cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r dShift_unsigned.ipa Payload
