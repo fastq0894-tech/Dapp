@@ -1,7 +1,6 @@
 # Uncomment this line to define a global platform for your project
 # platform :ios, '13.0'
 
-# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -22,7 +21,8 @@ def flutter_root
   end
   raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
 end
-flutter_root = File.expand_path('..', File.dirname(__FILE__))
+
+# We call the function defined above to get the actual SDK path
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
 
 flutter_ios_podfile_setup
