@@ -1,0 +1,32 @@
+# Uncomment this line to define a global platform for your project
+platform :ios, '12.0'
+
+# CocoaPods analytics sends network stats synchronously affecting Flutter's network traffic.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+def flutter_root
+Generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+raise "Generated.xcconfig missing" unless File.exist?(Generated_xcconfig_path)
+File.open(Generated_xcconfig_path) do |f|
+f.find { |line| line =~ /FLUTTER_ROOT=(.*)/ }
+return $1
+end
+end
+
+flutter_root = File.expand_path('..',File.dirname(__FILE__))
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+use_frameworks!
+use_modular_headers!
+
+flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+installer.pods_project.targets.each do |target|
+flutter_additional_ios_build_settings(target)
+end
+end
