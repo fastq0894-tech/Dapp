@@ -19,26 +19,32 @@ workflows:
       - name: Install CocoaPods
         script: | 
           cd ios && pod install --repo-update
-      - name: Build iOS (Direct Xcode Bypass)
+      - name: Build Flutter AOT
         script: | 
-          # 1. Prepare the Flutter environment
+          # This prepares the Dart code and assets without touching Xcode signing logic
           flutter build ios --release --no-codesign
-          
-          # 2. Force compile using xcodebuild to skip Flutter's "Team ID" check
+      - name: Direct Xcode Compilation
+        script: | 
+          # We use -allowProvisioningDeviceRegistration as a dummy flag 
+          # to keep the engine happy while forcing no signing.
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -sdk iphoneos \
+            -destination "generic/platform=iOS" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO
       - name: Package Unsigned IPA
         script: | 
-          # Manually wrap the build into an IPA structure
+          # Create the Payload folder and move the app into it
           mkdir -p Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
+          # Search for the app in the build directory to ensure we grab the right one
+          APP_PATH=$(find build/ios/iphoneos -name "*.app" | head -n 1)
+          cp -r "$APP_PATH" Payload/
           zip -r dShift_unsigned.ipa Payload
     artifacts:
       - "*.ipa"
