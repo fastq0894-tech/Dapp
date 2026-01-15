@@ -1,32 +1,33 @@
 workflows:
-  ios-build:
-    name: iOS Unsigned Build
-    instance_type: mac_mini_m1
-    max_build_duration: 60
-    environment:
-      flutter: stable
-      xcode: latest
+  ios:
+    name: iOS Build
     triggering:
       events:
         - push
       branch_patterns:
         - pattern: main
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
     scripts:
-      - name: Get Flutter dependencies
+      - name: Clean and Get Dependencies
         script: |
-          # This generates the Generated.xcconfig file required by your Podfile
+          # This removes the wrong Windows paths from your config files
+          flutter clean
           flutter pub get
-      - name: Install CocoaPods
+      - name: Install pods
         script: |
           cd ios
           pod install --repo-update
-      - name: Build iOS (No Signing)
+      - name: Build IPA (Unsigned)
         script: |
-          # Build the .app bundle without requiring Apple certificates
+          # Builds the app without needing Apple Developer portal keys
           flutter build ios --release --no-codesign
-      - name: Create Unsigned IPA
+      - name: Package Unsigned IPA
         script: |
-          # Manual packaging into an IPA so you can download it as an artifact
+          # Creates a downloadable file for you
           mkdir -p Payload
           cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r unsigned_release.ipa Payload
