@@ -73,11 +73,11 @@ DateTime focusedDay = DateTime.now();
 DateTime? selectedDay;
 
 final Map<String, int> shiftOffsets = {
-'A': 0,
-'B': 1,
-'C': 2,
-'D': 3,
-'F': 4,
+'A': 2,
+'B': 3,
+'C': 4,
+'D': 0,
+'F': 1,
 };
 
 late SharedPreferences _prefs;
@@ -277,4 +277,5 @@ style: TextStyle(fontSize: 20),
 ),
 );
 }
+
 }
