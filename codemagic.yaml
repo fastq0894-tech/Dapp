@@ -1,6 +1,6 @@
 workflows:
   ios-unsigned-workflow:
-    name: iOS Unsigned Direct Build
+    name: iOS Unsigned Final Fix
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
@@ -19,14 +19,14 @@ workflows:
       - name: Install CocoaPods
         script: | 
           cd ios && pod install --repo-update
-      - name: Build Flutter AOT
+      - name: Prepare Flutter Assets
         script: | 
-          # This prepares the Dart code and assets without touching Xcode signing logic
-          flutter build ios --release --no-codesign
-      - name: Direct Xcode Compilation
+          # This command builds the Dart code WITHOUT triggering the Xcode check
+          flutter build bundle
+      - name: Direct Xcode Compilation (The Bypass)
         script: | 
-          # We use -allowProvisioningDeviceRegistration as a dummy flag 
-          # to keep the engine happy while forcing no signing.
+          # We tell Xcode to build the project directly. 
+          # It ignores the Flutter Team ID check entirely.
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -36,14 +36,13 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
       - name: Package Unsigned IPA
         script: | 
-          # Create the Payload folder and move the app into it
+          # Locate the .app and wrap it in a Payload folder for the IPA
           mkdir -p Payload
-          # Search for the app in the build directory to ensure we grab the right one
-          APP_PATH=$(find build/ios/iphoneos -name "*.app" | head -n 1)
+          # This looks for the compiled app in the Xcode Derived Data folder
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Runner.app" -type d | grep "Release-iphoneos" | head -n 1)
           cp -r "$APP_PATH" Payload/
           zip -r dShift_unsigned.ipa Payload
     artifacts:
