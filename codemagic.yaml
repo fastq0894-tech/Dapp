@@ -1,6 +1,6 @@
 workflows:
   ios-unsigned-workflow:
-    name: iOS Unsigned Final Fix
+    name: iOS Unsigned Final Success
     instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
@@ -21,12 +21,14 @@ workflows:
           cd ios && pod install --repo-update
       - name: Prepare Flutter Assets
         script: | 
-          # This command builds the Dart code WITHOUT triggering the Xcode check
+          # Prepares Dart code without triggering Apple Developer checks
           flutter build bundle
-      - name: Direct Xcode Compilation (The Bypass)
+      - name: Fix Permissions and Direct Xcode Build
         script: | 
-          # We tell Xcode to build the project directly. 
-          # It ignores the Flutter Team ID check entirely.
+          # Resolve the "Permission Denied" error for Pod scripts
+          find . -name "*.sh" -exec chmod +x {} +
+          
+          # Force Xcode to compile without signing or provisioning profiles
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -36,13 +38,21 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO
       - name: Package Unsigned IPA
         script: | 
-          # Locate the .app and wrap it in a Payload folder for the IPA
+          # Create standard IPA structure
           mkdir -p Payload
-          # This looks for the compiled app in the Xcode Derived Data folder
+          
+          # Find the compiled app in DerivedData and copy it to Payload
           APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Runner.app" -type d | grep "Release-iphoneos" | head -n 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Runner.app not found. Checking alternate path..."
+            APP_PATH="build/ios/iphoneos/Runner.app"
+          fi
+          
           cp -r "$APP_PATH" Payload/
           zip -r dShift_unsigned.ipa Payload
     artifacts:
