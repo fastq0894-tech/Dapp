@@ -142,7 +142,7 @@ Widget build(BuildContext context) {
 selectedDay ??= focusedDay;
 
 return Scaffold(
-appBar: AppBar(title: const Text('D Shift Schedule')),
+appBar: AppBar(title: const Text('Shift Schedule')),
 body: Column(
 children: [
 Padding(
@@ -279,4 +279,5 @@ style: TextStyle(fontSize: 20),
 }
 
 }
+
 
