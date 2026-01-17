@@ -133,7 +133,7 @@ return Colors.orange;
 case 2:
 return Colors.black;
 default:
-return Colors.grey;
+return Colors.white;
 }
 }
 
@@ -279,3 +279,4 @@ style: TextStyle(fontSize: 20),
 }
 
 }
+
