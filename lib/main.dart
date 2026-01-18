@@ -253,31 +253,36 @@ if (selectedDay != null) Text(getDuty(selectedDay!, selectedShift), style: const
 }
 
 class InfoScreen extends StatelessWidget {
-const InfoScreen({super.key});
+  const InfoScreen({super.key});
 
-@override
-Widget build(BuildContext context) {
-return Scaffold(
-appBar: AppBar(title: const Text('Information')),
-body: const Center(
-child: Column(
-mainAxisAlignment: MainAxisAlignment.center,
-children: [
-Text(
-'Dedicated From',
-style: TextStyle(fontSize: 24, color: Colors.blue),
-),
-SizedBox(height: 10),
-Text(
-'Abdullah Aldihani',
-style: TextStyle(fontSize: 20),
-),
-],
-),
-),
-);
-}
-
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Information')),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Dedicated From',
+              style: TextStyle(fontSize: 24, color: Colors.blue),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Abdullah Aldihani',
+              style: TextStyle(fontSize: 20),
+            ),
+            // This is the new line for your phone number
+            SizedBox(height: 5), // Smaller gap between name and number
+            Text(
+              '99074883',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 
