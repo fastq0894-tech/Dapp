@@ -12,7 +12,7 @@ const MyApp({super.key});
 @override
 Widget build(BuildContext context) {
 return MaterialApp(
-title: '5 Shift',
+title: 'D Shift',
 theme: ThemeData(primarySwatch: Colors.blue),
 home: const HomeScreen(),
 );
@@ -279,6 +279,7 @@ style: TextStyle(fontSize: 20),
 }
 
 }
+
 
 
 
