@@ -6,9 +6,13 @@ import 'services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize notifications
-  final notificationService = NotificationService();
-  await notificationService.initNotifications();
+  // Initialize notifications with error handling
+  try {
+    final notificationService = NotificationService();
+    await notificationService.initNotifications();
+  } catch (e) {
+    debugPrint('Notification initialization failed: $e');
+  }
   
   runApp(const MyApp());
 }
