@@ -1555,7 +1555,7 @@ class _VacationScreenState extends State<VacationScreen> {
     'off': Colors.white,
   };
   Map<String, int> _shiftOffsets = {
-    'A': 0,
+    'A': 2,
     'B': 3,
     'C': 4,
     'D': 0,
@@ -2175,7 +2175,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
     
     if (_selectedYear < now.year) {
       // Past year - count full year
-      final isLeapYear = (_selectedYear % 4 == 0 && _selectedYear % 100 != 0) || (_selectedYear % 400 == 0);
       endDate = DateTime(_selectedYear, 12, 31);
     } else if (_selectedYear == now.year) {
       // Current year - count days from Jan 1 to today
