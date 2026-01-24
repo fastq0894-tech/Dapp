@@ -912,6 +912,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none,
                       color: getDutyColor(DateTime.now(), selectedShift),
                     ),
                   ),
@@ -970,6 +971,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.none,
                         color: getDutyColor(selectedDay!, selectedShift),
                       ),
                     ),
@@ -1052,6 +1054,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                     'Hold on a date to add a note',
                     style: TextStyle(
                       fontSize: 12,
+                      decoration: TextDecoration.none,
                       color: isIOS
                           ? CupertinoColors.secondaryLabel
                           : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -2546,18 +2549,45 @@ class _VacationScreenState extends State<VacationScreen> {
                     _vacationFirstDate = null;
                   });
                 },
-                children: const {
+                children: {
                   LeaveType.vacation: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Vacation'),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text(
+                      'Vacation',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                    ),
                   ),
                   LeaveType.sickLeave: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Sick'),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text(
+                      'Sick',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                    ),
                   ),
                   LeaveType.urgent: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Urgent'),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text(
+                      'Urgent',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                    ),
                   ),
                 },
               ),
@@ -2588,6 +2618,7 @@ class _VacationScreenState extends State<VacationScreen> {
                       style: const TextStyle(
                         color: CupertinoColors.systemGrey,
                         fontSize: 12,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ),
@@ -3007,6 +3038,7 @@ class _VacationScreenState extends State<VacationScreen> {
               style: TextStyle(
                 color: isSelected ? Colors.white : color,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                decoration: TextDecoration.none,
               ),
             ),
           ],
@@ -3027,7 +3059,13 @@ class _VacationScreenState extends State<VacationScreen> {
           ),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            decoration: TextDecoration.none,
+          ),
+        ),
       ],
     );
   }
