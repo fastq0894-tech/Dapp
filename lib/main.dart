@@ -722,6 +722,22 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
       lastDay: DateTime.utc(2030, 12, 31),
       focusedDay: focusedDay,
       rowHeight: 42,
+      headerStyle: HeaderStyle(
+        titleTextStyle: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.none,
+        ),
+        formatButtonTextStyle: const TextStyle(
+          decoration: TextDecoration.none,
+        ),
+        leftChevronIcon: const Icon(Icons.chevron_left),
+        rightChevronIcon: const Icon(Icons.chevron_right),
+      ),
+      daysOfWeekStyle: const DaysOfWeekStyle(
+        weekdayStyle: TextStyle(decoration: TextDecoration.none),
+        weekendStyle: TextStyle(decoration: TextDecoration.none),
+      ),
       selectedDayPredicate: (day) => isSameDay(selectedDay, day),
       onDaySelected: (selected, focused) {
         setState(() {
@@ -902,6 +918,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.none,
                         ),
                       ),
                     ],
@@ -919,7 +936,10 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                   const SizedBox(height: 4),
                   Text(
                     getDuty(DateTime.now(), selectedShift),
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
                 ],
               ),
@@ -961,6 +981,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
+                            decoration: TextDecoration.none,
                           ),
                         ),
                       ],
@@ -978,7 +999,10 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                     const SizedBox(height: 4),
                     Text(
                       getDuty(selectedDay!, selectedShift),
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        decoration: TextDecoration.none,
+                      ),
                     ),
                   ],
                 ),
@@ -2538,58 +2562,98 @@ class _VacationScreenState extends State<VacationScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Leave type selector - iOS style
+            // Leave type selector - Custom iOS style buttons
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: CupertinoSegmentedControl<LeaveType>(
-                groupValue: _selectedLeaveType,
-                onValueChanged: (LeaveType value) {
-                  setState(() {
-                    _selectedLeaveType = value;
-                    _vacationFirstDate = null;
-                  });
-                },
-                children: {
-                  LeaveType.vacation: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Vacation',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.none,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        _selectedLeaveType = LeaveType.vacation;
+                        _vacationFirstDate = null;
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedLeaveType == LeaveType.vacation
+                              ? CupertinoColors.systemBlue
+                              : CupertinoColors.systemGrey5,
+                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                        ),
+                        child: Text(
+                          'Vacation',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.none,
+                            color: _selectedLeaveType == LeaveType.vacation
+                                ? CupertinoColors.white
+                                : CupertinoColors.label,
+                          ),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.visible,
                     ),
                   ),
-                  LeaveType.sickLeave: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Sick',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.none,
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        _selectedLeaveType = LeaveType.sickLeave;
+                        _vacationFirstDate = null;
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedLeaveType == LeaveType.sickLeave
+                              ? CupertinoColors.systemOrange
+                              : CupertinoColors.systemGrey5,
+                        ),
+                        child: Text(
+                          'Sick',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.none,
+                            color: _selectedLeaveType == LeaveType.sickLeave
+                                ? CupertinoColors.white
+                                : CupertinoColors.label,
+                          ),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.visible,
                     ),
                   ),
-                  LeaveType.urgent: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Urgent',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.none,
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        _selectedLeaveType = LeaveType.urgent;
+                        _vacationFirstDate = null;
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedLeaveType == LeaveType.urgent
+                              ? CupertinoColors.systemRed
+                              : CupertinoColors.systemGrey5,
+                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                        ),
+                        child: Text(
+                          'Urgent',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.none,
+                            color: _selectedLeaveType == LeaveType.urgent
+                                ? CupertinoColors.white
+                                : CupertinoColors.label,
+                          ),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.visible,
                     ),
                   ),
-                },
+                ],
               ),
             ),
             Container(
@@ -2635,6 +2699,22 @@ class _VacationScreenState extends State<VacationScreen> {
                 rangeStartDay: _rangeStart,
                 rangeEndDay: _rangeEnd,
                 rangeSelectionMode: _rangeSelectionMode,
+                headerStyle: HeaderStyle(
+                  titleTextStyle: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.none,
+                  ),
+                  formatButtonTextStyle: const TextStyle(
+                    decoration: TextDecoration.none,
+                  ),
+                  leftChevronIcon: const Icon(CupertinoIcons.chevron_left),
+                  rightChevronIcon: const Icon(CupertinoIcons.chevron_right),
+                ),
+                daysOfWeekStyle: const DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(decoration: TextDecoration.none),
+                  weekendStyle: TextStyle(decoration: TextDecoration.none),
+                ),
                 onRangeSelected: (start, end, focusedDay) {
                   setState(() {
                     _focusedDay = focusedDay;
@@ -2858,6 +2938,20 @@ class _VacationScreenState extends State<VacationScreen> {
               rangeStartDay: _rangeStart,
               rangeEndDay: _rangeEnd,
               rangeSelectionMode: _rangeSelectionMode,
+              headerStyle: HeaderStyle(
+                titleTextStyle: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.none,
+                ),
+                formatButtonTextStyle: const TextStyle(
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(decoration: TextDecoration.none),
+                weekendStyle: TextStyle(decoration: TextDecoration.none),
+              ),
               onRangeSelected: (start, end, focusedDay) {
                 setState(() {
                   _focusedDay = focusedDay;
