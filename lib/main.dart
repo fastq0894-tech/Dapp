@@ -1571,6 +1571,22 @@ class _VacationScreenState extends State<VacationScreen> {
     }
   }
 
+  void _toggleSingleDay(DateTime day) {
+    final dateKey = _formatDate(day);
+    final leaveTypeStr = _selectedLeaveType.name;
+    
+    setState(() {
+      if (_leaveRecords.containsKey(dateKey)) {
+        // Remove leave if day already has leave
+        _leaveRecords.remove(dateKey);
+      } else {
+        // Add leave
+        _leaveRecords[dateKey] = leaveTypeStr;
+      }
+    });
+    _saveLeaveRecords();
+  }
+
   void _addLeaveRange(DateTime start, DateTime end) {
     final leaveTypeStr = _selectedLeaveType.name;
     DateTime current = start;
@@ -1581,72 +1597,17 @@ class _VacationScreenState extends State<VacationScreen> {
       current = current.add(const Duration(days: 1));
     }
     
-    setState(() {});
+    setState(() {
+      _rangeStart = null;
+      _rangeEnd = null;
+    });
     _saveLeaveRecords();
     
     final days = end.difference(start).inDays + 1;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added $days day(s) of ${_getLeaveLabel(leaveTypeStr)}')),
-    );
-  }
-
-  void _removeLeaveRange(DateTime start, DateTime end) {
-    DateTime current = start;
-    
-    while (!current.isAfter(end)) {
-      final dateKey = _formatDate(current);
-      _leaveRecords.remove(dateKey);
-      current = current.add(const Duration(days: 1));
-    }
-    
-    setState(() {});
-    _saveLeaveRecords();
-    
-    final days = end.difference(start).inDays + 1;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Removed $days day(s) of leave')),
-    );
-  }
-
-  void _showRangeActionDialog(DateTime start, DateTime end) {
-    final days = end.difference(start).inDays + 1;
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$days Day(s) Selected'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_formatDate(start)} to ${_formatDate(end)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text('Leave type: ${_getLeaveLabel(_selectedLeaveType.name)}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _removeLeaveRange(start, end);
-            },
-            child: const Text('Remove Leave', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _addLeaveRange(start, end);
-            },
-            child: const Text('Add Leave'),
-          ),
-        ],
+      SnackBar(
+        content: Text('Added $days day(s) of ${_getLeaveLabel(leaveTypeStr)}'),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -1684,7 +1645,7 @@ class _VacationScreenState extends State<VacationScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Tap start date, then tap end date to select range',
+                    'Tap to add/remove • Drag to select range',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
@@ -1706,23 +1667,27 @@ class _VacationScreenState extends State<VacationScreen> {
               rangeSelectionMode: _rangeSelectionMode,
               onRangeSelected: (start, end, focusedDay) {
                 setState(() {
-                  _rangeStart = start;
-                  _rangeEnd = end;
                   _focusedDay = focusedDay;
                 });
                 
-                // When both start and end are selected, show action dialog
+                // When both start and end are selected, add leave for range immediately
                 if (start != null && end != null) {
-                  _showRangeActionDialog(start, end);
+                  _addLeaveRange(start, end);
+                } else {
+                  setState(() {
+                    _rangeStart = start;
+                    _rangeEnd = end;
+                  });
                 }
               },
               onDaySelected: (selectedDay, focusedDay) {
-                // For single day selection, use range with same start/end
+                // Single tap = toggle leave for that day
                 setState(() {
-                  _rangeStart = selectedDay;
+                  _rangeStart = null;
                   _rangeEnd = null;
                   _focusedDay = focusedDay;
                 });
+                _toggleSingleDay(selectedDay);
               },
               calendarFormat: CalendarFormat.month,
               calendarStyle: CalendarStyle(
@@ -1797,33 +1762,15 @@ class _VacationScreenState extends State<VacationScreen> {
               ),
             ),
           ),
-          // Legend and clear selection button
+          // Legend
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildLegendItem('Vacation', Colors.blue),
-                    _buildLegendItem('Sick Leave', Colors.orange),
-                    _buildLegendItem('Urgent', Colors.red),
-                  ],
-                ),
-                if (_rangeStart != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _rangeStart = null;
-                          _rangeEnd = null;
-                        });
-                      },
-                      icon: const Icon(Icons.clear, size: 18),
-                      label: const Text('Clear Selection'),
-                    ),
-                  ),
+                _buildLegendItem('Vacation', Colors.blue),
+                _buildLegendItem('Sick Leave', Colors.orange),
+                _buildLegendItem('Urgent', Colors.red),
               ],
             ),
           ),
