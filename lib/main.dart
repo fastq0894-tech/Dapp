@@ -1294,64 +1294,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return cycle + 1; // 1-based
   }
 
-  void _editShiftHours(String shiftType) {
+  TimeOfDay _parseTimeString(String timeStr) {
+    // Parse time string like "7:00 AM" or "3:00 PM"
+    final parts = timeStr.split(' ');
+    final timeParts = parts[0].split(':');
+    int hour = int.parse(timeParts[0]);
+    int minute = int.parse(timeParts[1]);
+    
+    if (parts.length > 1 && parts[1].toUpperCase() == 'PM' && hour != 12) {
+      hour += 12;
+    } else if (parts.length > 1 && parts[1].toUpperCase() == 'AM' && hour == 12) {
+      hour = 0;
+    }
+    
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  void _editShiftHours(String shiftType) async {
     String startKey = '${shiftType}_start';
     String endKey = '${shiftType}_end';
-    String startTime = shiftHours[startKey] ?? '';
-    String endTime = shiftHours[endKey] ?? '';
+    String startTimeStr = shiftHours[startKey] ?? '7:00 AM';
+    String endTimeStr = shiftHours[endKey] ?? '3:00 PM';
     
-    final startController = TextEditingController(text: startTime);
-    final endController = TextEditingController(text: endTime);
+    TimeOfDay startTime = _parseTimeString(startTimeStr);
+    TimeOfDay endTime = _parseTimeString(endTimeStr);
     
-    showDialog(
+    // Show start time picker
+    final TimeOfDay? newStartTime = await showTimePicker(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit ${shiftType.substring(0, 1).toUpperCase()}${shiftType.substring(1)} Shift Hours'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: startController,
-              decoration: const InputDecoration(
-                labelText: 'Start Time',
-                hintText: 'e.g., 7:00 AM',
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: endController,
-              decoration: const InputDecoration(
-                labelText: 'End Time',
-                hintText: 'e.g., 3:00 PM',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              setState(() {
-                shiftHours[startKey] = startController.text;
-                shiftHours[endKey] = endController.text;
-              });
-              await _prefs.setString(startKey, startController.text);
-              await _prefs.setString(endKey, endController.text);
-              if (!mounted) return;
-              // ignore: use_build_context_synchronously
-              Navigator.pop(context);
-              // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Shift hours saved!')),
-              );
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      initialTime: startTime,
+      helpText: 'Select Start Time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
+    );
+    
+    if (newStartTime == null || !mounted) return;
+    
+    // Show end time picker
+    final TimeOfDay? newEndTime = await showTimePicker(
+      context: context,
+      initialTime: endTime,
+      helpText: 'Select End Time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
+    );
+    
+    if (newEndTime == null || !mounted) return;
+    
+    // Save the new times
+    String newStartStr = _formatTimeOfDay(newStartTime);
+    String newEndStr = _formatTimeOfDay(newEndTime);
+    
+    setState(() {
+      shiftHours[startKey] = newStartStr;
+      shiftHours[endKey] = newEndStr;
+    });
+    
+    await _prefs.setString(startKey, newStartStr);
+    await _prefs.setString(endKey, newEndStr);
+    
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Shift hours saved!')),
     );
   }
 
