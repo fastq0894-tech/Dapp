@@ -8,6 +8,14 @@ import 'services/notification_service.dart';
 // Helper to check if running on iOS
 bool get isIOS => Platform.isIOS;
 
+// Global shift colors that can be updated from Settings
+Map<String, Color> shiftColors = {
+  'morning': Colors.blue,
+  'evening': Colors.orange,
+  'night': Colors.black,
+  'off': Colors.white,
+};
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -210,12 +218,6 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
 
   late SharedPreferences _prefs;
   bool _isLoaded = false;
-  Map<String, Color> shiftColors = {
-    'morning': Colors.blue,
-    'evening': Colors.orange,
-    'night': Colors.black,
-    'off': Colors.white,
-  };
 
   // Shift pattern: list of duty types for each day in cycle
   // 0 = morning, 1 = evening, 2 = night, 3 = off
@@ -631,9 +633,11 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
   }
 
   Widget _buildIOSCalendar(BuildContext context) {
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Shift Schedule'),
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Shift Schedule'),
+        backgroundColor: isDark ? CupertinoColors.black : CupertinoColors.white,
       ),
       child: SafeArea(
         child: Column(
@@ -728,9 +732,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
           fontWeight: FontWeight.bold,
           decoration: TextDecoration.none,
         ),
-        formatButtonTextStyle: const TextStyle(
-          decoration: TextDecoration.none,
-        ),
+        formatButtonTextStyle: const TextStyle(decoration: TextDecoration.none),
         leftChevronIcon: const Icon(Icons.chevron_left),
         rightChevronIcon: const Icon(Icons.chevron_right),
       ),
@@ -1209,8 +1211,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildIOSSettings(BuildContext context) {
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('Settings')),
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Settings'),
+        backgroundColor: isDark ? CupertinoColors.black : CupertinoColors.white,
+      ),
       child: SafeArea(
         child: ListView(
           children: [
@@ -1284,7 +1290,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       final color = await _showColorPicker(morningColor);
                       if (color != null) {
-                        setState(() => morningColor = color);
+                        setState(() {
+                          morningColor = color;
+                          shiftColors['morning'] = color;
+                        });
                         await _saveColor('color_morning', morningColor);
                       }
                     },
@@ -1305,7 +1314,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       final color = await _showColorPicker(eveningColor);
                       if (color != null) {
-                        setState(() => eveningColor = color);
+                        setState(() {
+                          eveningColor = color;
+                          shiftColors['evening'] = color;
+                        });
                         await _saveColor('color_evening', eveningColor);
                       }
                     },
@@ -1326,7 +1338,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       final color = await _showColorPicker(nightColor);
                       if (color != null) {
-                        setState(() => nightColor = color);
+                        setState(() {
+                          nightColor = color;
+                          shiftColors['night'] = color;
+                        });
                         await _saveColor('color_night', nightColor);
                       }
                     },
@@ -1792,7 +1807,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (color != null) {
                   setState(() {
                     morningColor = color;
+                    shiftColors['morning'] = color;
                   });
+                  await _saveColor('color_morning', morningColor);
                 }
               },
               child: Container(
@@ -1815,7 +1832,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (color != null) {
                   setState(() {
                     eveningColor = color;
+                    shiftColors['evening'] = color;
                   });
+                  await _saveColor('color_evening', eveningColor);
                 }
               },
               child: Container(
@@ -1838,7 +1857,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (color != null) {
                   setState(() {
                     nightColor = color;
+                    shiftColors['night'] = color;
                   });
+                  await _saveColor('color_night', nightColor);
                 }
               },
               child: Container(
@@ -1855,6 +1876,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 30),
           ElevatedButton(
             onPressed: () async {
+              setState(() {
+                shiftColors['morning'] = morningColor;
+                shiftColors['evening'] = eveningColor;
+                shiftColors['night'] = nightColor;
+              });
               await _saveColor('color_morning', morningColor);
               await _saveColor('color_evening', eveningColor);
               await _saveColor('color_night', nightColor);
@@ -2301,7 +2327,7 @@ class _VacationScreenState extends State<VacationScreen> {
   Map<String, String> _leaveRecords = {}; // date -> leave type
   LeaveType _selectedLeaveType = LeaveType.vacation;
   final RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOff;
-  
+
   // Shift-related variables
   String _selectedShift = 'A';
   List<int> _shiftPattern = [0, 1, 2, 3, 3];
@@ -2309,7 +2335,7 @@ class _VacationScreenState extends State<VacationScreen> {
   Color _morningColor = Colors.blue;
   Color _eveningColor = Colors.orange;
   Color _nightColor = Colors.black;
-  
+
   final Map<String, int> _shiftOffsets = {
     'A': 2,
     'B': 3,
@@ -2344,16 +2370,22 @@ class _VacationScreenState extends State<VacationScreen> {
           _leaveRecords[parts[0]] = parts[1];
         }
       }
-      
+
       // Load shift settings
       _selectedShift = prefs.getString('selectedShift') ?? 'A';
       final patternStr = prefs.getString('shift_pattern') ?? '0,1,2,3,3';
       _shiftPattern = patternStr.split(',').map((e) => int.parse(e)).toList();
       final dateStr = prefs.getString('cycle_start_date') ?? '2026-02-01';
       _cycleStartDate = DateTime.parse(dateStr);
-      _morningColor = Color(prefs.getInt('morningColor') ?? Colors.blue.toARGB32());
-      _eveningColor = Color(prefs.getInt('eveningColor') ?? Colors.orange.toARGB32());
-      _nightColor = Color(prefs.getInt('nightColor') ?? Colors.black.toARGB32());
+      _morningColor = Color(
+        prefs.getInt('morningColor') ?? Colors.blue.toARGB32(),
+      );
+      _eveningColor = Color(
+        prefs.getInt('eveningColor') ?? Colors.orange.toARGB32(),
+      );
+      _nightColor = Color(
+        prefs.getInt('nightColor') ?? Colors.black.toARGB32(),
+      );
     });
   }
 
@@ -2371,7 +2403,7 @@ class _VacationScreenState extends State<VacationScreen> {
     int cycle = (daysSince + offset) % _shiftPattern.length;
     if (cycle < 0) cycle += _shiftPattern.length;
     final dutyType = _shiftPattern[cycle];
-    
+
     switch (dutyType) {
       case 0:
         return _morningColor;
@@ -2384,7 +2416,7 @@ class _VacationScreenState extends State<VacationScreen> {
         return Colors.grey.shade300; // Off day
     }
   }
-  
+
   bool _isOffDay(DateTime date) {
     // Normalize both dates to midnight local time to avoid timezone issues
     final normalizedDate = DateTime(date.year, date.month, date.day);
@@ -2555,9 +2587,11 @@ class _VacationScreenState extends State<VacationScreen> {
   }
 
   Widget _buildIOSVacation(BuildContext context) {
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Vacation / Leave'),
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Vacation / Leave'),
+        backgroundColor: isDark ? CupertinoColors.black : CupertinoColors.white,
       ),
       child: SafeArea(
         child: Column(
@@ -2579,7 +2613,9 @@ class _VacationScreenState extends State<VacationScreen> {
                           color: _selectedLeaveType == LeaveType.vacation
                               ? CupertinoColors.systemBlue
                               : CupertinoColors.systemGrey5,
-                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                          borderRadius: const BorderRadius.horizontal(
+                            left: Radius.circular(8),
+                          ),
                         ),
                         child: Text(
                           'Vacation',
@@ -2636,7 +2672,9 @@ class _VacationScreenState extends State<VacationScreen> {
                           color: _selectedLeaveType == LeaveType.urgent
                               ? CupertinoColors.systemRed
                               : CupertinoColors.systemGrey5,
-                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                          borderRadius: const BorderRadius.horizontal(
+                            right: Radius.circular(8),
+                          ),
                         ),
                         child: Text(
                           'Urgent',
@@ -2798,7 +2836,9 @@ class _VacationScreenState extends State<VacationScreen> {
                           day.day.toString(),
                           style: TextStyle(
                             color: isOff ? Colors.grey : Colors.black,
-                            fontWeight: isOff ? FontWeight.normal : FontWeight.w500,
+                            fontWeight: isOff
+                                ? FontWeight.normal
+                                : FontWeight.w500,
                           ),
                         ),
                       ),
@@ -3038,7 +3078,9 @@ class _VacationScreenState extends State<VacationScreen> {
                         day.day.toString(),
                         style: TextStyle(
                           color: isOff ? Colors.grey : Colors.black,
-                          fontWeight: isOff ? FontWeight.normal : FontWeight.w500,
+                          fontWeight: isOff
+                              ? FontWeight.normal
+                              : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -3155,10 +3197,7 @@ class _VacationScreenState extends State<VacationScreen> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            decoration: TextDecoration.none,
-          ),
+          style: const TextStyle(fontSize: 12, decoration: TextDecoration.none),
         ),
       ],
     );
@@ -3374,9 +3413,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
         : 0.0;
 
     if (isIOS) {
+      final isDark =
+          MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       return CupertinoPageScaffold(
-        navigationBar: const CupertinoNavigationBar(
-          middle: Text('Leave Records'),
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Leave Records'),
+          backgroundColor: isDark
+              ? CupertinoColors.black
+              : CupertinoColors.white,
         ),
         child: SafeArea(
           child: _buildRecordsContent(
@@ -3441,6 +3485,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.none,
                 ),
               ),
               isIOS
@@ -3590,7 +3635,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       const SizedBox(height: 16),
                       Text(
                         'No leave records for $_selectedYear',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                          decoration: TextDecoration.none,
+                        ),
                       ),
                     ],
                   ),
@@ -3697,9 +3746,14 @@ class InfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isIOS) {
+      final isDark =
+          MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       return CupertinoPageScaffold(
-        navigationBar: const CupertinoNavigationBar(
-          middle: Text('Information'),
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Information'),
+          backgroundColor: isDark
+              ? CupertinoColors.black
+              : CupertinoColors.white,
         ),
         child: const SafeArea(
           child: Center(
@@ -3711,16 +3765,24 @@ class InfoScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24,
                     color: CupertinoColors.activeBlue,
+                    decoration: TextDecoration.none,
                   ),
                 ),
                 SizedBox(height: 10),
-                Text('Abdullah Aldihani', style: TextStyle(fontSize: 20)),
+                Text(
+                  'Abdullah Aldihani',
+                  style: TextStyle(
+                    fontSize: 20,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
                 SizedBox(height: 5),
                 Text(
                   '99074883',
                   style: TextStyle(
                     fontSize: 16,
                     color: CupertinoColors.systemGrey,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ],
@@ -3738,14 +3800,25 @@ class InfoScreen extends StatelessWidget {
           children: [
             Text(
               'Dedicated From',
-              style: TextStyle(fontSize: 24, color: Colors.blue),
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.blue,
+                decoration: TextDecoration.none,
+              ),
             ),
             SizedBox(height: 10),
-            Text('Abdullah Aldihani', style: TextStyle(fontSize: 20)),
+            Text(
+              'Abdullah Aldihani',
+              style: TextStyle(fontSize: 20, decoration: TextDecoration.none),
+            ),
             SizedBox(height: 5),
             Text(
               '99074883',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                decoration: TextDecoration.none,
+              ),
             ),
           ],
         ),
