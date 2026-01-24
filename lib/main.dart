@@ -997,7 +997,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
           // Morning shift color
           ListTile(
-            title: const Text('Morning Shift (7 AM - 3 PM)'),
+            title: const Text('Morning Shift'),
             trailing: GestureDetector(
               onTap: () async {
                 final color = await _showColorPicker(morningColor);
@@ -1020,7 +1020,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           // Evening shift color
           ListTile(
-            title: const Text('Evening Shift (3 PM - 11 PM)'),
+            title: const Text('Evening Shift'),
             trailing: GestureDetector(
               onTap: () async {
                 final color = await _showColorPicker(eveningColor);
@@ -1043,7 +1043,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           // Night shift color
           ListTile(
-            title: const Text('Night Shift (11 PM - 7 AM)'),
+            title: const Text('Night Shift'),
             trailing: GestureDetector(
               onTap: () async {
                 final color = await _showColorPicker(nightColor);
