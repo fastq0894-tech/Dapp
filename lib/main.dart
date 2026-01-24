@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/notification_service.dart';
 
-// Helper to check if running on iOS
-bool get isIOS => Platform.isIOS;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
   // Initialize notifications with error handling
   try {
     final notificationService = NotificationService();
@@ -18,7 +13,7 @@ void main() async {
   } catch (e) {
     debugPrint('Notification initialization failed: $e');
   }
-
+  
   runApp(const MyApp());
 }
 
@@ -75,8 +70,14 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'D Shift',
-      theme: ThemeData(brightness: Brightness.light, useMaterial3: true),
-      darkTheme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
+      theme: ThemeData(
+        brightness: Brightness.light,
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+      ),
       themeMode: _themeMode,
       home: HomeScreen(
         themeMode: _themeMode,
@@ -115,45 +116,6 @@ class _HomeScreenState extends State<HomeScreen> {
       const RecordsScreen(),
       const InfoScreen(),
     ];
-
-    if (isIOS) {
-      return CupertinoTabScaffold(
-        tabBar: CupertinoTabBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.calendar),
-              label: 'Calendar',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.settings),
-              label: 'Settings',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.sun_max),
-              label: 'Vacation',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.list_bullet),
-              label: 'Records',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.info),
-              label: 'Info',
-            ),
-          ],
-        ),
-        tabBuilder: (context, index) {
-          return CupertinoTabView(builder: (context) => screens[index]);
-        },
-      );
-    }
-
     return Scaffold(
       body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -177,7 +139,10 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.beach_access),
             label: 'Vacation',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Records'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Records',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.info_outline),
             label: 'Info',
@@ -216,11 +181,11 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     'night': Colors.black,
     'off': Colors.white,
   };
-
+  
   // Shift pattern: list of duty types for each day in cycle
   // 0 = morning, 1 = evening, 2 = night, 3 = off
   List<int> shiftPattern = [0, 1, 2, 3, 3]; // Default 5-day pattern
-
+  
   // Custom shift hours
   Map<String, String> shiftHours = {
     'morning_start': '7:00 AM',
@@ -230,7 +195,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     'night_start': '11:00 PM',
     'night_end': '7:00 AM',
   };
-
+  
   // Cycle start date (the date that is Day 1 of the cycle)
   DateTime cycleStartDate = DateTime(2026, 2, 1);
 
@@ -250,7 +215,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
 
   Future<void> _initializePreferences() async {
     _prefs = await SharedPreferences.getInstance();
-
+    
     // Set default colors on first run
     if (!_prefs.containsKey('color_morning')) {
       await _saveColorDirect('color_morning', Colors.blue);
@@ -261,12 +226,12 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     if (!_prefs.containsKey('color_night')) {
       await _saveColorDirect('color_night', Colors.black);
     }
-
+    
     // Set default shift pattern on first run (5-day rotation)
     if (!_prefs.containsKey('shift_pattern')) {
       await _prefs.setString('shift_pattern', '0,1,2,3,3');
     }
-
+    
     // Set default shift hours on first run
     if (!_prefs.containsKey('morning_start')) {
       await _prefs.setString('morning_start', '7:00 AM');
@@ -276,12 +241,12 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
       await _prefs.setString('night_start', '11:00 PM');
       await _prefs.setString('night_end', '7:00 AM');
     }
-
+    
     // Set default cycle start date on first run
     if (!_prefs.containsKey('cycle_start_date')) {
       await _prefs.setString('cycle_start_date', '2026-02-01');
     }
-
+    
     setState(() {
       selectedShift = _prefs.getString('selectedShift') ?? 'A';
       _loadCustomColorsSync();
@@ -290,7 +255,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
       _loadCycleStartDateSync();
       _isLoaded = true;
     });
-
+    
     // Schedule notifications after loading preferences
     _scheduleUpcomingNotifications();
   }
@@ -298,56 +263,43 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
   Future<void> _scheduleUpcomingNotifications() async {
     final notificationService = NotificationService();
     await notificationService.cancelAllNotifications();
-
+    
     // Check if notifications are enabled
     final prefs = await SharedPreferences.getInstance();
     final notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
     if (!notificationsEnabled) return;
-
+    
     // Schedule notifications for the next 7 days
     for (int i = 0; i < 7; i++) {
       final date = DateTime.now().add(Duration(days: i));
       final normalizedDate = DateTime(date.year, date.month, date.day);
-
+      
       // Check if this is a work day (not rest day)
       int offset = shiftOffsets[selectedShift] ?? 0;
       int cycleIndex = getCycleDay(normalizedDate, offset);
       int dutyType = shiftPattern[cycleIndex];
-
-      if (dutyType != 3) {
-        // Not a rest day
+      
+      if (dutyType != 3) { // Not a rest day
         DateTime shiftStartTime;
         String dutyName;
-
+        
         switch (dutyType) {
           case 0: // Morning
-            shiftStartTime = _parseShiftTime(
-              normalizedDate,
-              shiftHours['morning_start'] ?? '7:00 AM',
-            );
-            dutyName =
-                'Morning (${shiftHours['morning_start']} - ${shiftHours['morning_end']})';
+            shiftStartTime = _parseShiftTime(normalizedDate, shiftHours['morning_start'] ?? '7:00 AM');
+            dutyName = 'Morning (${shiftHours['morning_start']} - ${shiftHours['morning_end']})';
             break;
           case 1: // Evening
-            shiftStartTime = _parseShiftTime(
-              normalizedDate,
-              shiftHours['evening_start'] ?? '3:00 PM',
-            );
-            dutyName =
-                'Evening (${shiftHours['evening_start']} - ${shiftHours['evening_end']})';
+            shiftStartTime = _parseShiftTime(normalizedDate, shiftHours['evening_start'] ?? '3:00 PM');
+            dutyName = 'Evening (${shiftHours['evening_start']} - ${shiftHours['evening_end']})';
             break;
           case 2: // Night
-            shiftStartTime = _parseShiftTime(
-              normalizedDate,
-              shiftHours['night_start'] ?? '11:00 PM',
-            );
-            dutyName =
-                'Night (${shiftHours['night_start']} - ${shiftHours['night_end']})';
+            shiftStartTime = _parseShiftTime(normalizedDate, shiftHours['night_start'] ?? '11:00 PM');
+            dutyName = 'Night (${shiftHours['night_start']} - ${shiftHours['night_end']})';
             break;
           default:
             continue;
         }
-
+        
         await notificationService.scheduleShiftNotifications(
           shiftStartTime: shiftStartTime,
           shift: selectedShift,
@@ -364,15 +316,13 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     final timeParts = parts[0].split(':');
     int hour = int.parse(timeParts[0]);
     int minute = int.parse(timeParts[1]);
-
+    
     if (parts.length > 1 && parts[1].toUpperCase() == 'PM' && hour != 12) {
       hour += 12;
-    } else if (parts.length > 1 &&
-        parts[1].toUpperCase() == 'AM' &&
-        hour == 12) {
+    } else if (parts.length > 1 && parts[1].toUpperCase() == 'AM' && hour == 12) {
       hour = 0;
     }
-
+    
     return DateTime(date.year, date.month, date.day, hour, minute);
   }
 
@@ -419,11 +369,9 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
   }
 
   void _loadShiftHoursSync() {
-    shiftHours['morning_start'] =
-        _prefs.getString('morning_start') ?? '7:00 AM';
+    shiftHours['morning_start'] = _prefs.getString('morning_start') ?? '7:00 AM';
     shiftHours['morning_end'] = _prefs.getString('morning_end') ?? '3:00 PM';
-    shiftHours['evening_start'] =
-        _prefs.getString('evening_start') ?? '3:00 PM';
+    shiftHours['evening_start'] = _prefs.getString('evening_start') ?? '3:00 PM';
     shiftHours['evening_end'] = _prefs.getString('evening_end') ?? '11:00 PM';
     shiftHours['night_start'] = _prefs.getString('night_start') ?? '11:00 PM';
     shiftHours['night_end'] = _prefs.getString('night_end') ?? '7:00 AM';
@@ -440,11 +388,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
   int getCycleDay(DateTime date, int offset) {
     // Normalize both dates to midnight local time to avoid timezone issues
     final normalizedDate = DateTime(date.year, date.month, date.day);
-    final normalizedCycleStart = DateTime(
-      cycleStartDate.year,
-      cycleStartDate.month,
-      cycleStartDate.day,
-    );
+    final normalizedCycleStart = DateTime(cycleStartDate.year, cycleStartDate.month, cycleStartDate.day);
     int daysSince = normalizedDate.difference(normalizedCycleStart).inDays;
     int cycleLength = shiftPattern.length;
     int cycle = (daysSince + offset) % cycleLength;
@@ -521,169 +465,55 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     _getNote(date).then((note) {
       if (!mounted) return;
       noteText = note ?? '';
-
-      if (isIOS) {
-        _showIOSNoteDialog(date, noteText);
-      } else {
-        _showAndroidNoteDialog(date, noteText);
-      }
-    });
-  }
-
-  void _showIOSNoteDialog(DateTime date, String initialNote) {
-    String noteText = initialNote;
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Note for ${date.year}-${date.month}-${date.day}'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 16.0),
-          child: CupertinoTextField(
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Note for ${date.year}-${date.month}-${date.day}'),
+          content: TextField(
             controller: TextEditingController(text: noteText),
             maxLines: 4,
             onChanged: (value) {
               noteText = value;
             },
-            placeholder: 'Add a note for this day...',
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          if (noteText.isNotEmpty)
-            CupertinoDialogAction(
-              isDestructiveAction: true,
-              onPressed: () async {
-                await _saveNote(date, '');
-                setState(() {});
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('Delete'),
+            decoration: const InputDecoration(
+              hintText: 'Add a note for this day...',
+              border: OutlineInputBorder(),
             ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              await _saveNote(date, noteText);
-              setState(() {});
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('Save'),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showAndroidNoteDialog(DateTime date, String initialNote) {
-    String noteText = initialNote;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Note for ${date.year}-${date.month}-${date.day}'),
-        content: TextField(
-          controller: TextEditingController(text: noteText),
-          maxLines: 4,
-          onChanged: (value) {
-            noteText = value;
-          },
-          decoration: const InputDecoration(
-            hintText: 'Add a note for this day...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          if (noteText.isNotEmpty)
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            if (noteText.isNotEmpty)
+              TextButton(
+                onPressed: () async {
+                  await _saveNote(date, '');
+                  setState(() {});
+                  // ignore: use_build_context_synchronously
+                  if (mounted) Navigator.pop(context);
+                },
+                child: const Text('Delete'),
+              ),
             TextButton(
               onPressed: () async {
-                await _saveNote(date, '');
+                await _saveNote(date, noteText);
                 setState(() {});
+                // ignore: use_build_context_synchronously
                 if (mounted) Navigator.pop(context);
               },
-              child: const Text('Delete'),
+              child: const Text('Save'),
             ),
-          TextButton(
-            onPressed: () async {
-              await _saveNote(date, noteText);
-              setState(() {});
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     selectedDay ??= focusedDay;
 
-    if (isIOS) {
-      return _buildIOSCalendar(context);
-    }
-    return _buildAndroidCalendar(context);
-  }
-
-  Widget _buildIOSCalendar(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Shift Schedule'),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // iOS-style shift selector
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: CupertinoSegmentedControl<String>(
-                groupValue: selectedShift,
-                onValueChanged: (String value) {
-                  setState(() {
-                    selectedShift = value;
-                  });
-                  _saveSelectedShift(value);
-                  _scheduleUpcomingNotifications();
-                },
-                children: const {
-                  'A': Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('A'),
-                  ),
-                  'B': Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('B'),
-                  ),
-                  'C': Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('C'),
-                  ),
-                  'D': Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('D'),
-                  ),
-                  'F': Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('F'),
-                  ),
-                },
-              ),
-            ),
-            Expanded(child: _buildCalendarView()),
-            // Selected day info
-            _buildSelectedDayInfo(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAndroidCalendar(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Shift Schedule')),
       body: Column(
@@ -693,9 +523,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
             child: DropdownButton<String>(
               value: selectedShift,
               items: ['A', 'B', 'C', 'D', 'F']
-                  .map(
-                    (s) => DropdownMenuItem(value: s, child: Text('Shift $s')),
-                  )
+                  .map((s) => DropdownMenuItem(value: s, child: Text('Shift $s')))
                   .toList(),
               onChanged: (value) {
                 if (value != null) {
@@ -703,365 +531,327 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                     selectedShift = value;
                   });
                   _saveSelectedShift(value);
-                  _scheduleUpcomingNotifications();
+                  _scheduleUpcomingNotifications(); // Reschedule notifications for new shift
                 }
               },
             ),
           ),
-          Expanded(child: _buildCalendarView()),
-          // Selected day info
-          _buildSelectedDayInfo(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCalendarView() {
-    return TableCalendar(
-      firstDay: DateTime.utc(2025, 1, 1),
-      lastDay: DateTime.utc(2030, 12, 31),
-      focusedDay: focusedDay,
-      rowHeight: 42,
-      selectedDayPredicate: (day) => isSameDay(selectedDay, day),
-      onDaySelected: (selected, focused) {
-        setState(() {
-          selectedDay = selected;
-          focusedDay = focused;
-        });
-      },
-      onDayLongPressed: (selected, focused) {
-        setState(() {
-          selectedDay = selected;
-          focusedDay = focused;
-        });
-        _showNoteDialog(selected);
-      },
-      calendarFormat: CalendarFormat.month,
-      onPageChanged: (focused) {
-        focusedDay = focused;
-      },
-      calendarBuilders: CalendarBuilders(
-        defaultBuilder: (context, day, focusedDay) {
-          Color color = getDutyColor(day, selectedShift);
-          return FutureBuilder<String?>(
-            future: _getNote(day),
-            builder: (context, snapshot) {
-              bool hasNote = snapshot.hasData && snapshot.data != null;
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.all(4.0),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(color: Colors.black),
-                    ),
-                  ),
-                  if (hasNote)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                ],
-              );
+          TableCalendar(
+            firstDay: DateTime.utc(2025, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            focusedDay: focusedDay,
+            selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+            onDaySelected: (selected, focused) {
+              setState(() {
+                selectedDay = selected;
+                focusedDay = focused;
+              });
             },
-          );
-        },
-        selectedBuilder: (context, day, focusedDay) {
-          Color color = getDutyColor(day, selectedShift);
-          return FutureBuilder<String?>(
-            future: _getNote(day),
-            builder: (context, snapshot) {
-              bool hasNote = snapshot.hasData && snapshot.data != null;
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.all(4.0),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  if (hasNote)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.yellow,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                ],
-              );
+            onDayLongPressed: (selected, focused) {
+              setState(() {
+                selectedDay = selected;
+                focusedDay = focused;
+              });
+              _showNoteDialog(selected);
             },
-          );
-        },
-        todayBuilder: (context, day, focusedDay) {
-          Color color = getDutyColor(day, selectedShift);
-          return FutureBuilder<String?>(
-            future: _getNote(day),
-            builder: (context, snapshot) {
-              bool hasNote = snapshot.hasData && snapshot.data != null;
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.all(4.0),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.red, width: 3),
-                    ),
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (hasNote)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                ],
-              );
+            calendarFormat: CalendarFormat.month,
+            onPageChanged: (focused) {
+              focusedDay = focused;
             },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSelectedDayInfo(BuildContext context) {
-    return Expanded(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Today's Duty Card
-            Container(
-              width: double.infinity,
+            calendarBuilders: CalendarBuilders(
+              defaultBuilder: (context, day, focusedDay) {
+                Color color = getDutyColor(day, selectedShift);
+                return FutureBuilder<String?>(
+                  future: _getNote(day),
+                  builder: (context, snapshot) {
+                    bool hasNote = snapshot.hasData && snapshot.data != null;
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(4.0),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        if (hasNote)
+                          Positioned(
+                            bottom: 6,
+                            right: 6,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
+              selectedBuilder: (context, day, focusedDay) {
+                Color color = getDutyColor(day, selectedShift);
+                return FutureBuilder<String?>(
+                  future: _getNote(day),
+                  builder: (context, snapshot) {
+                    bool hasNote = snapshot.hasData && snapshot.data != null;
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(4.0),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        if (hasNote)
+                          Positioned(
+                            bottom: 6,
+                            right: 6,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: Colors.yellow,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
+              todayBuilder: (context, day, focusedDay) {
+                Color color = getDutyColor(day, selectedShift);
+                return FutureBuilder<String?>(
+                  future: _getNote(day),
+                  builder: (context, snapshot) {
+                    bool hasNote = snapshot.hasData && snapshot.data != null;
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(4.0),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.red,
+                              width: 3,
+                            ),
+                          ),
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(
+                                color: Colors.black, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        if (hasNote)
+                          Positioned(
+                            bottom: 6,
+                            right: 6,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: getDutyColor(
-                  DateTime.now(),
-                  selectedShift,
-                ).withValues(alpha: 0.2),
-                border: Border.all(
-                  color: getDutyColor(DateTime.now(), selectedShift),
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isIOS ? CupertinoIcons.today : Icons.today,
-                        size: 20,
+                  // Today's Duty Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: getDutyColor(DateTime.now(), selectedShift).withValues(alpha: 0.2),
+                      border: Border.all(
+                        color: getDutyColor(DateTime.now(), selectedShift),
+                        width: 2,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Today (${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year})',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.today, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Today (${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year})',
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    getDutyTypeName(DateTime.now(), selectedShift),
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: getDutyColor(DateTime.now(), selectedShift),
+                        const SizedBox(height: 8),
+                        Text(
+                          getDutyTypeName(DateTime.now(), selectedShift),
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: getDutyColor(DateTime.now(), selectedShift),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          getDuty(DateTime.now(), selectedShift),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    getDuty(DateTime.now(), selectedShift),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Selected Day Duty Card
-            if (selectedDay != null && !isSameDay(selectedDay, DateTime.now()))
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: getDutyColor(
-                    selectedDay!,
-                    selectedShift,
-                  ).withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: getDutyColor(
-                      selectedDay!,
-                      selectedShift,
-                    ).withValues(alpha: 0.6),
-                    width: 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  const SizedBox(height: 16),
+                  // Selected Day Duty Card
+                  if (selectedDay != null && !isSameDay(selectedDay, DateTime.now()))
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: getDutyColor(selectedDay!, selectedShift).withValues(alpha: 0.15),
+                        border: Border.all(
+                          color: getDutyColor(selectedDay!, selectedShift).withValues(alpha: 0.6),
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.calendar_month, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Selected (${selectedDay!.day}/${selectedDay!.month}/${selectedDay!.year})',
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            getDutyTypeName(selectedDay!, selectedShift),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: getDutyColor(selectedDay!, selectedShift),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            getDuty(selectedDay!, selectedShift),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Note Display
+                  if (selectedDay != null)
+                    const SizedBox(height: 12),
+                  if (selectedDay != null)
+                    FutureBuilder<String?>(
+                      future: _getNote(selectedDay!),
+                      builder: (context, snapshot) {
+                        String? note = snapshot.data;
+                        if (note != null && note.isNotEmpty) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12.0),
+                            decoration: BoxDecoration(
+                              color: Colors.yellow.withValues(alpha: 0.2),
+                              border: Border.all(color: Colors.orange),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.note, size: 18, color: Colors.orange),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Note:',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  note,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  const SizedBox(height: 16),
+                  // Hint text for adding notes
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isIOS
-                              ? CupertinoIcons.calendar
-                              : Icons.calendar_month,
-                          size: 20,
+                          Icons.touch_app,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Text(
-                          'Selected (${selectedDay!.day}/${selectedDay!.month}/${selectedDay!.year})',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                          'Hold on a date to add a note',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      getDutyTypeName(selectedDay!, selectedShift),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: getDutyColor(selectedDay!, selectedShift),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      getDuty(selectedDay!, selectedShift),
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
-            // Note Display
-            if (selectedDay != null) const SizedBox(height: 12),
-            if (selectedDay != null)
-              FutureBuilder<String?>(
-                future: _getNote(selectedDay!),
-                builder: (context, snapshot) {
-                  String? note = snapshot.data;
-                  if (note != null && note.isNotEmpty) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12.0),
-                      decoration: BoxDecoration(
-                        color: Colors.yellow.withValues(alpha: 0.2),
-                        border: Border.all(color: Colors.orange),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                isIOS ? CupertinoIcons.doc_text : Icons.note,
-                                size: 18,
-                                color: Colors.orange,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Note:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                          Text(note, style: const TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            const SizedBox(height: 16),
-            // Hint text for adding notes
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                color: isIOS
-                    ? CupertinoColors.systemGrey5
-                    : Theme.of(context).colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isIOS ? CupertinoIcons.hand_point_right : Icons.touch_app,
-                    size: 16,
-                    color: isIOS
-                        ? CupertinoColors.secondaryLabel
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Hold on a date to add a note',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isIOS
-                          ? CupertinoColors.secondaryLabel
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1088,7 +878,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Color nightColor = Colors.black;
   late ThemeMode _themeMode;
   List<int> shiftPattern = [0, 1, 2, 3, 3]; // Default 5-day pattern
-
+  
   // Custom shift hours
   Map<String, String> shiftHours = {
     'morning_start': '7:00 AM',
@@ -1098,11 +888,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'night_start': '11:00 PM',
     'night_end': '7:00 AM',
   };
-
+  
   // Cycle start date
   DateTime cycleStartDate = DateTime(2026, 2, 1);
   int todayCycleDay = 1; // For "Apply from today" feature
-
+  
   // Notification setting
   bool _notificationsEnabled = true;
 
@@ -1141,23 +931,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (patternStr != null) {
         shiftPattern = patternStr.split(',').map((e) => int.parse(e)).toList();
       }
-
+      
       // Load shift hours
-      shiftHours['morning_start'] =
-          _prefs.getString('morning_start') ?? '7:00 AM';
+      shiftHours['morning_start'] = _prefs.getString('morning_start') ?? '7:00 AM';
       shiftHours['morning_end'] = _prefs.getString('morning_end') ?? '3:00 PM';
-      shiftHours['evening_start'] =
-          _prefs.getString('evening_start') ?? '3:00 PM';
+      shiftHours['evening_start'] = _prefs.getString('evening_start') ?? '3:00 PM';
       shiftHours['evening_end'] = _prefs.getString('evening_end') ?? '11:00 PM';
       shiftHours['night_start'] = _prefs.getString('night_start') ?? '11:00 PM';
       shiftHours['night_end'] = _prefs.getString('night_end') ?? '7:00 AM';
-
+      
       // Load cycle start date
       String? dateStr = _prefs.getString('cycle_start_date');
       if (dateStr != null) {
         cycleStartDate = DateTime.parse(dateStr);
       }
-
+      
       // Load notification setting
       _notificationsEnabled = _prefs.getBool('notifications_enabled') ?? true;
     });
@@ -1175,519 +963,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isIOS) {
-      return _buildIOSSettings(context);
-    }
-    return _buildAndroidSettings(context);
-  }
-
-  Widget _buildIOSSettings(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('Settings')),
-      child: SafeArea(
-        child: ListView(
-          children: [
-            // App Theme Section
-            CupertinoListSection.insetGrouped(
-              header: const Text('APP THEME'),
-              children: [
-                CupertinoListTile(
-                  title: const Text('Theme Mode'),
-                  trailing: CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _themeMode == ThemeMode.system
-                              ? 'System'
-                              : _themeMode == ThemeMode.light
-                              ? 'Light'
-                              : 'Dark',
-                          style: TextStyle(color: CupertinoColors.systemGrey),
-                        ),
-                        const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 18,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                      ],
-                    ),
-                    onPressed: () => _showIOSThemePicker(context),
-                  ),
-                ),
-              ],
-            ),
-            // Notifications Section
-            CupertinoListSection.insetGrouped(
-              header: const Text('NOTIFICATIONS'),
-              footer: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'A reminder will be sent 1 hour before shift and 2 hours after shift',
-                  style: TextStyle(
-                    color: CupertinoColors.systemGrey,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              children: [
-                CupertinoListTile(
-                  title: const Text('Enable Notifications'),
-                  trailing: CupertinoSwitch(
-                    value: _notificationsEnabled,
-                    onChanged: (value) async {
-                      setState(() {
-                        _notificationsEnabled = value;
-                      });
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setBool('notifications_enabled', value);
-                    },
-                  ),
-                ),
-              ],
-            ),
-            // Shift Colors Section
-            CupertinoListSection.insetGrouped(
-              header: const Text('SHIFT COLORS'),
-              children: [
-                CupertinoListTile(
-                  title: const Text('Morning Shift'),
-                  trailing: GestureDetector(
-                    onTap: () async {
-                      final color = await _showColorPicker(morningColor);
-                      if (color != null) {
-                        setState(() => morningColor = color);
-                        await _saveColor('color_morning', morningColor);
-                      }
-                    },
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: morningColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: CupertinoColors.systemGrey4),
-                      ),
-                    ),
-                  ),
-                ),
-                CupertinoListTile(
-                  title: const Text('Evening Shift'),
-                  trailing: GestureDetector(
-                    onTap: () async {
-                      final color = await _showColorPicker(eveningColor);
-                      if (color != null) {
-                        setState(() => eveningColor = color);
-                        await _saveColor('color_evening', eveningColor);
-                      }
-                    },
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: eveningColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: CupertinoColors.systemGrey4),
-                      ),
-                    ),
-                  ),
-                ),
-                CupertinoListTile(
-                  title: const Text('Night Shift'),
-                  trailing: GestureDetector(
-                    onTap: () async {
-                      final color = await _showColorPicker(nightColor);
-                      if (color != null) {
-                        setState(() => nightColor = color);
-                        await _saveColor('color_night', nightColor);
-                      }
-                    },
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: nightColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: CupertinoColors.systemGrey4),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            // Shift Pattern Section
-            CupertinoListSection.insetGrouped(
-              header: Text(
-                'SHIFT PATTERN (${shiftPattern.length}-DAY ROTATION)',
-              ),
-              children: [
-                ...List.generate(shiftPattern.length, (index) {
-                  return CupertinoListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: _getDutyColorFromType(
-                        shiftPattern[index],
-                      ),
-                      radius: 14,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: shiftPattern[index] == 3
-                              ? Colors.black
-                              : Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    title: Text('Day ${index + 1}'),
-                    trailing: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _getDutyName(shiftPattern[index]),
-                            style: TextStyle(color: CupertinoColors.systemGrey),
-                          ),
-                          const Icon(
-                            CupertinoIcons.chevron_right,
-                            size: 18,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                        ],
-                      ),
-                      onPressed: () => _showIOSDutyPicker(context, index),
-                    ),
-                  );
-                }),
-                CupertinoListTile(
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      CupertinoButton(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        color: CupertinoColors.systemBlue,
-                        onPressed: shiftPattern.length < 14
-                            ? () {
-                                setState(() => shiftPattern.add(3));
-                              }
-                            : null,
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(CupertinoIcons.add, size: 18),
-                            SizedBox(width: 4),
-                            Text('Add'),
-                          ],
-                        ),
-                      ),
-                      CupertinoButton(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        color: CupertinoColors.systemRed,
-                        onPressed: shiftPattern.length > 1
-                            ? () {
-                                setState(() => shiftPattern.removeLast());
-                              }
-                            : null,
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(CupertinoIcons.minus, size: 18),
-                            SizedBox(width: 4),
-                            Text('Remove'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            // Save Pattern Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: CupertinoButton.filled(
-                child: const Text('Save Pattern'),
-                onPressed: () async {
-                  String patternStr = shiftPattern.join(',');
-                  await _prefs.setString('shift_pattern', patternStr);
-                  if (!mounted) return;
-                  _showIOSAlert(context, 'Success', 'Shift pattern saved!');
-                },
-              ),
-            ),
-            // Shift Hours Section
-            CupertinoListSection.insetGrouped(
-              header: const Text('SHIFT HOURS'),
-              children: [
-                CupertinoListTile(
-                  title: const Text('Morning Shift'),
-                  subtitle: Text(
-                    '${shiftHours['morning_start']} - ${shiftHours['morning_end']}',
-                  ),
-                  trailing: const Icon(
-                    CupertinoIcons.chevron_right,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                  onTap: () => _editShiftHours('morning'),
-                ),
-                CupertinoListTile(
-                  title: const Text('Evening Shift'),
-                  subtitle: Text(
-                    '${shiftHours['evening_start']} - ${shiftHours['evening_end']}',
-                  ),
-                  trailing: const Icon(
-                    CupertinoIcons.chevron_right,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                  onTap: () => _editShiftHours('evening'),
-                ),
-                CupertinoListTile(
-                  title: const Text('Night Shift'),
-                  subtitle: Text(
-                    '${shiftHours['night_start']} - ${shiftHours['night_end']}',
-                  ),
-                  trailing: const Icon(
-                    CupertinoIcons.chevron_right,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                  onTap: () => _editShiftHours('night'),
-                ),
-              ],
-            ),
-            // Cycle Start Date Section
-            CupertinoListSection.insetGrouped(
-              header: const Text('CYCLE START DATE'),
-              footer: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Today is Day ${_getTodayCycleDay()} of the pattern',
-                  style: const TextStyle(
-                    color: CupertinoColors.systemGrey,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              children: [
-                CupertinoListTile(
-                  title: const Text('Set Today as Cycle Day'),
-                  trailing: CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Day $todayCycleDay',
-                          style: TextStyle(color: CupertinoColors.systemGrey),
-                        ),
-                        const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 18,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                      ],
-                    ),
-                    onPressed: () => _showIOSCycleDayPicker(context),
-                  ),
-                ),
-              ],
-            ),
-            // Apply Cycle Day Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: CupertinoButton.filled(
-                child: const Text('Apply Cycle Day'),
-                onPressed: () async {
-                  DateTime today = DateTime.now();
-                  DateTime todayOnly = DateTime(
-                    today.year,
-                    today.month,
-                    today.day,
-                  );
-                  cycleStartDate = todayOnly.subtract(
-                    Duration(days: todayCycleDay - 1),
-                  );
-                  String dateStr =
-                      '${cycleStartDate.year}-${cycleStartDate.month.toString().padLeft(2, '0')}-${cycleStartDate.day.toString().padLeft(2, '0')}';
-                  await _prefs.setString('cycle_start_date', dateStr);
-                  if (!mounted) return;
-                  _showIOSAlert(
-                    context,
-                    'Success',
-                    'Today is now Day $todayCycleDay of the pattern!',
-                  );
-                  setState(() {});
-                },
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showIOSThemePicker(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Select Theme'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => _themeMode = ThemeMode.system);
-              widget.onThemeModeChanged(ThemeMode.system);
-              Navigator.pop(context);
-            },
-            child: const Text('System'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => _themeMode = ThemeMode.light);
-              widget.onThemeModeChanged(ThemeMode.light);
-              Navigator.pop(context);
-            },
-            child: const Text('Light'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => _themeMode = ThemeMode.dark);
-              widget.onThemeModeChanged(ThemeMode.dark);
-              Navigator.pop(context);
-            },
-            child: const Text('Dark'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDestructiveAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
-  }
-
-  void _showIOSDutyPicker(BuildContext context, int dayIndex) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text('Day ${dayIndex + 1} Duty'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => shiftPattern[dayIndex] = 0);
-              Navigator.pop(context);
-            },
-            child: const Text('Morning'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => shiftPattern[dayIndex] = 1);
-              Navigator.pop(context);
-            },
-            child: const Text('Evening'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => shiftPattern[dayIndex] = 2);
-              Navigator.pop(context);
-            },
-            child: const Text('Night'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() => shiftPattern[dayIndex] = 3);
-              Navigator.pop(context);
-            },
-            child: const Text('Off'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDestructiveAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
-  }
-
-  void _showIOSCycleDayPicker(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => Container(
-        height: 250,
-        color: CupertinoColors.systemBackground.resolveFrom(context),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                CupertinoButton(
-                  child: const Text('Cancel'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                CupertinoButton(
-                  child: const Text('Done'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 40,
-                scrollController: FixedExtentScrollController(
-                  initialItem: todayCycleDay - 1,
-                ),
-                onSelectedItemChanged: (index) {
-                  setState(() => todayCycleDay = index + 1);
-                },
-                children: List.generate(shiftPattern.length, (index) {
-                  return Center(child: Text('Day ${index + 1}'));
-                }),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showIOSAlert(BuildContext context, String title, String message) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getDutyName(int dutyType) {
-    switch (dutyType) {
-      case 0:
-        return 'Morning';
-      case 1:
-        return 'Evening';
-      case 2:
-        return 'Night';
-      default:
-        return 'Off';
-    }
-  }
-
-  Widget _buildAndroidSettings(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -1714,8 +989,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: ThemeMode.system,
                   child: Text('System'),
                 ),
-                DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
-                DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
+                DropdownMenuItem(
+                  value: ThemeMode.light,
+                  child: Text('Light'),
+                ),
+                DropdownMenuItem(
+                  value: ThemeMode.dark,
+                  child: Text('Dark'),
+                ),
               ],
             ),
           ),
@@ -1743,9 +1024,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    value ? 'Notifications enabled' : 'Notifications disabled',
-                  ),
+                  content: Text(value 
+                    ? 'Notifications enabled' 
+                    : 'Notifications disabled'),
                 ),
               );
             },
@@ -1860,9 +1141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(
                   '${index + 1}',
                   style: TextStyle(
-                    color: shiftPattern[index] == 3
-                        ? Colors.black
-                        : Colors.white,
+                    color: shiftPattern[index] == 3 ? Colors.black : Colors.white,
                   ),
                 ),
               ),
@@ -1950,9 +1229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Morning shift hours
           ListTile(
             title: const Text('Morning Shift'),
-            subtitle: Text(
-              '${shiftHours['morning_start']} - ${shiftHours['morning_end']}',
-            ),
+            subtitle: Text('${shiftHours['morning_start']} - ${shiftHours['morning_end']}'),
             trailing: IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () => _editShiftHours('morning'),
@@ -1961,9 +1238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Evening shift hours
           ListTile(
             title: const Text('Evening Shift'),
-            subtitle: Text(
-              '${shiftHours['evening_start']} - ${shiftHours['evening_end']}',
-            ),
+            subtitle: Text('${shiftHours['evening_start']} - ${shiftHours['evening_end']}'),
             trailing: IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () => _editShiftHours('evening'),
@@ -1972,9 +1247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Night shift hours
           ListTile(
             title: const Text('Night Shift'),
-            subtitle: Text(
-              '${shiftHours['night_start']} - ${shiftHours['night_end']}',
-            ),
+            subtitle: Text('${shiftHours['night_start']} - ${shiftHours['night_end']}'),
             trailing: IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () => _editShiftHours('night'),
@@ -2019,20 +1292,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               DateTime today = DateTime.now();
               DateTime todayOnly = DateTime(today.year, today.month, today.day);
               // If today should be Day X, then cycle start = today - (X-1) days
-              cycleStartDate = todayOnly.subtract(
-                Duration(days: todayCycleDay - 1),
-              );
-              String dateStr =
-                  '${cycleStartDate.year}-${cycleStartDate.month.toString().padLeft(2, '0')}-${cycleStartDate.day.toString().padLeft(2, '0')}';
+              cycleStartDate = todayOnly.subtract(Duration(days: todayCycleDay - 1));
+              String dateStr = '${cycleStartDate.year}-${cycleStartDate.month.toString().padLeft(2, '0')}-${cycleStartDate.day.toString().padLeft(2, '0')}';
               await _prefs.setString('cycle_start_date', dateStr);
               if (!mounted) return;
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Today is now Day $todayCycleDay of the pattern!',
-                  ),
-                ),
+                SnackBar(content: Text('Today is now Day $todayCycleDay of the pattern!')),
               );
               setState(() {});
             },
@@ -2076,15 +1342,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final timeParts = parts[0].split(':');
     int hour = int.parse(timeParts[0]);
     int minute = int.parse(timeParts[1]);
-
+    
     if (parts.length > 1 && parts[1].toUpperCase() == 'PM' && hour != 12) {
       hour += 12;
-    } else if (parts.length > 1 &&
-        parts[1].toUpperCase() == 'AM' &&
-        hour == 12) {
+    } else if (parts.length > 1 && parts[1].toUpperCase() == 'AM' && hour == 12) {
       hour = 0;
     }
-
+    
     return TimeOfDay(hour: hour, minute: minute);
   }
 
@@ -2100,10 +1364,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String endKey = '${shiftType}_end';
     String startTimeStr = shiftHours[startKey] ?? '7:00 AM';
     String endTimeStr = shiftHours[endKey] ?? '3:00 PM';
-
+    
     TimeOfDay startTime = _parseTimeString(startTimeStr);
     TimeOfDay endTime = _parseTimeString(endTimeStr);
-
+    
     // Show start time picker
     final TimeOfDay? newStartTime = await showTimePicker(
       context: context,
@@ -2116,9 +1380,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
-
+    
     if (newStartTime == null || !mounted) return;
-
+    
     // Show end time picker
     final TimeOfDay? newEndTime = await showTimePicker(
       context: context,
@@ -2131,25 +1395,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
-
+    
     if (newEndTime == null || !mounted) return;
-
+    
     // Save the new times
     String newStartStr = _formatTimeOfDay(newStartTime);
     String newEndStr = _formatTimeOfDay(newEndTime);
-
+    
     setState(() {
       shiftHours[startKey] = newStartStr;
       shiftHours[endKey] = newEndStr;
     });
-
+    
     await _prefs.setString(startKey, newStartStr);
     await _prefs.setString(endKey, newEndStr);
-
+    
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Shift hours saved!')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Shift hours saved!')),
+    );
   }
 
   Future<Color?> _showColorPicker(Color initialColor) async {
@@ -2209,47 +1473,46 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
         const SizedBox(height: 20),
         Wrap(
           spacing: 10,
-          children:
-              [
-                    Colors.red,
-                    Colors.blue,
-                    Colors.green,
-                    Colors.yellow,
-                    Colors.orange,
-                    Colors.purple,
-                    Colors.pink,
-                    Colors.cyan,
-                    Colors.lime,
-                    Colors.indigo,
-                    Colors.lightBlueAccent,
-                    Colors.deepOrange,
-                    Colors.black,
-                  ]
-                  .map(
-                    (color) => GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedColor = color;
-                        });
-                        widget.onColorChanged(color);
-                      },
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: _selectedColor == color
-                                ? Colors.black
-                                : Colors.grey,
-                            width: _selectedColor == color ? 3 : 1,
-                          ),
-                        ),
+          children: [
+            Colors.red,
+            Colors.blue,
+            Colors.green,
+            Colors.yellow,
+            Colors.orange,
+            Colors.purple,
+            Colors.pink,
+            Colors.cyan,
+            Colors.lime,
+            Colors.indigo,
+            Colors.lightBlueAccent,
+            Colors.deepOrange,
+            Colors.black,
+          ]
+              .map(
+                (color) => GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedColor = color;
+                    });
+                    widget.onColorChanged(color);
+                  },
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _selectedColor == color
+                            ? Colors.black
+                            : Colors.grey,
+                        width: _selectedColor == color ? 3 : 1,
                       ),
                     ),
-                  )
-                  .toList(),
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -2273,18 +1536,20 @@ class _VacationScreenState extends State<VacationScreen> {
   DateTime? _vacationFirstDate; // For vacation range selection
   Map<String, String> _leaveRecords = {}; // date -> leave type
   LeaveType _selectedLeaveType = LeaveType.vacation;
-  final RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOff;
+  RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOff;
   
-  // Shift-related variables
+  // Shift pattern data
   String _selectedShift = 'A';
   List<int> _shiftPattern = [0, 1, 2, 3, 3];
   DateTime _cycleStartDate = DateTime(2026, 2, 1);
-  Color _morningColor = Colors.blue;
-  Color _eveningColor = Colors.orange;
-  Color _nightColor = Colors.black;
-  
-  final Map<String, int> _shiftOffsets = {
-    'A': 2,
+  Map<String, Color> _shiftColors = {
+    'morning': Colors.blue,
+    'evening': Colors.orange,
+    'night': Colors.black,
+    'off': Colors.white,
+  };
+  Map<String, int> _shiftOffsets = {
+    'A': 0,
     'B': 3,
     'C': 4,
     'D': 0,
@@ -2295,6 +1560,60 @@ class _VacationScreenState extends State<VacationScreen> {
   void initState() {
     super.initState();
     _loadLeaveRecords();
+    _loadShiftSettings();
+  }
+
+  Future<void> _loadShiftSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedShift = prefs.getString('selectedShift') ?? 'A';
+      
+      // Load shift pattern
+      String? patternStr = prefs.getString('shift_pattern');
+      if (patternStr != null) {
+        _shiftPattern = patternStr.split(',').map((e) => int.parse(e)).toList();
+      }
+      
+      // Load cycle start date
+      String? dateStr = prefs.getString('cycle_start_date');
+      if (dateStr != null) {
+        _cycleStartDate = DateTime.parse(dateStr);
+      }
+      
+      // Load custom colors
+      String? morning = prefs.getString('color_morning');
+      String? evening = prefs.getString('color_evening');
+      String? night = prefs.getString('color_night');
+      if (morning != null) _shiftColors['morning'] = Color(int.parse(morning));
+      if (evening != null) _shiftColors['evening'] = Color(int.parse(evening));
+      if (night != null) _shiftColors['night'] = Color(int.parse(night));
+    });
+  }
+
+  int _getCycleDay(DateTime date) {
+    int offset = _shiftOffsets[_selectedShift] ?? 0;
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final normalizedCycleStart = DateTime(_cycleStartDate.year, _cycleStartDate.month, _cycleStartDate.day);
+    int daysSince = normalizedDate.difference(normalizedCycleStart).inDays;
+    int cycleLength = _shiftPattern.length;
+    int cycle = (daysSince + offset) % cycleLength;
+    if (cycle < 0) cycle += cycleLength;
+    return cycle;
+  }
+
+  Color _getDutyColor(DateTime date) {
+    int c = _getCycleDay(date);
+    int dutyType = _shiftPattern[c];
+    switch (dutyType) {
+      case 0:
+        return _shiftColors['morning']!;
+      case 1:
+        return _shiftColors['evening']!;
+      case 2:
+        return _shiftColors['night']!;
+      default:
+        return _shiftColors['off']!;
+    }
   }
 
   Future<void> _loadLeaveRecords() async {
@@ -2303,9 +1622,7 @@ class _VacationScreenState extends State<VacationScreen> {
     setState(() {
       _leaveRecords = Map<String, String>.from(
         Map<String, dynamic>.from(
-          Uri.splitQueryString(
-            recordsJson,
-          ).map((key, value) => MapEntry(key, value)),
+          Uri.splitQueryString(recordsJson).map((key, value) => MapEntry(key, value)),
         ),
       );
       // Better parsing for JSON-like storage
@@ -2317,67 +1634,12 @@ class _VacationScreenState extends State<VacationScreen> {
           _leaveRecords[parts[0]] = parts[1];
         }
       }
-      
-      // Load shift settings
-      _selectedShift = prefs.getString('selectedShift') ?? 'A';
-      final patternStr = prefs.getString('shift_pattern') ?? '0,1,2,3,3';
-      _shiftPattern = patternStr.split(',').map((e) => int.parse(e)).toList();
-      final dateStr = prefs.getString('cycle_start_date') ?? '2026-02-01';
-      _cycleStartDate = DateTime.parse(dateStr);
-      _morningColor = Color(prefs.getInt('morningColor') ?? Colors.blue.toARGB32());
-      _eveningColor = Color(prefs.getInt('eveningColor') ?? Colors.orange.toARGB32());
-      _nightColor = Color(prefs.getInt('nightColor') ?? Colors.black.toARGB32());
     });
-  }
-
-  // Get shift duty color for a given day
-  Color _getShiftColor(DateTime date) {
-    // Normalize both dates to midnight local time to avoid timezone issues
-    final normalizedDate = DateTime(date.year, date.month, date.day);
-    final normalizedCycleStart = DateTime(
-      _cycleStartDate.year,
-      _cycleStartDate.month,
-      _cycleStartDate.day,
-    );
-    final offset = _shiftOffsets[_selectedShift] ?? 0;
-    final daysSince = normalizedDate.difference(normalizedCycleStart).inDays;
-    int cycle = (daysSince + offset) % _shiftPattern.length;
-    if (cycle < 0) cycle += _shiftPattern.length;
-    final dutyType = _shiftPattern[cycle];
-    
-    switch (dutyType) {
-      case 0:
-        return _morningColor;
-      case 1:
-        return _eveningColor;
-      case 2:
-        return _nightColor;
-      case 3:
-      default:
-        return Colors.grey.shade300; // Off day
-    }
-  }
-  
-  bool _isOffDay(DateTime date) {
-    // Normalize both dates to midnight local time to avoid timezone issues
-    final normalizedDate = DateTime(date.year, date.month, date.day);
-    final normalizedCycleStart = DateTime(
-      _cycleStartDate.year,
-      _cycleStartDate.month,
-      _cycleStartDate.day,
-    );
-    final offset = _shiftOffsets[_selectedShift] ?? 0;
-    final daysSince = normalizedDate.difference(normalizedCycleStart).inDays;
-    int cycle = (daysSince + offset) % _shiftPattern.length;
-    if (cycle < 0) cycle += _shiftPattern.length;
-    return _shiftPattern[cycle] == 3;
   }
 
   Future<void> _saveLeaveRecords() async {
     final prefs = await SharedPreferences.getInstance();
-    final list = _leaveRecords.entries
-        .map((e) => '${e.key}|${e.value}')
-        .toList();
+    final list = _leaveRecords.entries.map((e) => '${e.key}|${e.value}').toList();
     await prefs.setStringList('leave_records_list', list);
   }
 
@@ -2427,7 +1689,7 @@ class _VacationScreenState extends State<VacationScreen> {
   void _toggleSingleDay(DateTime day) {
     final dateKey = _formatDate(day);
     final leaveTypeStr = _selectedLeaveType.name;
-
+    
     // For vacation, support range selection with two taps
     if (_selectedLeaveType == LeaveType.vacation) {
       if (_vacationFirstDate == null) {
@@ -2445,35 +1707,29 @@ class _VacationScreenState extends State<VacationScreen> {
           _saveLeaveRecords();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'Tap another date to fill range, or tap same date again to confirm single day',
-              ),
+              content: Text('Tap another date to fill range, or tap same date again to confirm single day'),
               duration: Duration(seconds: 2),
             ),
           );
         }
       } else {
         // Second tap - fill range between first and second date
-        DateTime start = _vacationFirstDate!.isBefore(day)
-            ? _vacationFirstDate!
-            : day;
-        DateTime end = _vacationFirstDate!.isBefore(day)
-            ? day
-            : _vacationFirstDate!;
-
+        DateTime start = _vacationFirstDate!.isBefore(day) ? _vacationFirstDate! : day;
+        DateTime end = _vacationFirstDate!.isBefore(day) ? day : _vacationFirstDate!;
+        
         DateTime current = start;
         while (!current.isAfter(end)) {
           final key = _formatDate(current);
           _leaveRecords[key] = leaveTypeStr;
           current = current.add(const Duration(days: 1));
         }
-
+        
         final days = end.difference(start).inDays + 1;
         setState(() {
           _vacationFirstDate = null;
         });
         _saveLeaveRecords();
-
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Added $days day(s) of Vacation'),
@@ -2497,19 +1753,19 @@ class _VacationScreenState extends State<VacationScreen> {
   void _addLeaveRange(DateTime start, DateTime end) {
     final leaveTypeStr = _selectedLeaveType.name;
     DateTime current = start;
-
+    
     while (!current.isAfter(end)) {
       final dateKey = _formatDate(current);
       _leaveRecords[dateKey] = leaveTypeStr;
       current = current.add(const Duration(days: 1));
     }
-
+    
     setState(() {
       _rangeStart = null;
       _rangeEnd = null;
     });
     _saveLeaveRecords();
-
+    
     final days = end.difference(start).inDays + 1;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -2521,242 +1777,10 @@ class _VacationScreenState extends State<VacationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isIOS) {
-      return _buildIOSVacation(context);
-    }
-    return _buildAndroidVacation(context);
-  }
-
-  Widget _buildIOSVacation(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Vacation / Leave'),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Leave type selector - iOS style
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: CupertinoSegmentedControl<LeaveType>(
-                groupValue: _selectedLeaveType,
-                onValueChanged: (LeaveType value) {
-                  setState(() {
-                    _selectedLeaveType = value;
-                    _vacationFirstDate = null;
-                  });
-                },
-                children: const {
-                  LeaveType.vacation: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Vacation'),
-                  ),
-                  LeaveType.sickLeave: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Sick'),
-                  ),
-                  LeaveType.urgent: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Urgent'),
-                  ),
-                },
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8,
-              ),
-              margin: const EdgeInsets.symmetric(horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    CupertinoIcons.hand_draw,
-                    size: 16,
-                    color: CupertinoColors.systemBlue,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _selectedLeaveType == LeaveType.vacation
-                          ? 'Tap 2 dates to fill range • Tap marked day to remove'
-                          : 'Tap to add/remove single day',
-                      style: const TextStyle(
-                        color: CupertinoColors.systemGrey,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Calendar
-            Expanded(
-              child: TableCalendar(
-                firstDay: DateTime(2020, 1, 1),
-                lastDay: DateTime(2030, 12, 31),
-                focusedDay: _focusedDay,
-                rangeStartDay: _rangeStart,
-                rangeEndDay: _rangeEnd,
-                rangeSelectionMode: _rangeSelectionMode,
-                onRangeSelected: (start, end, focusedDay) {
-                  setState(() {
-                    _focusedDay = focusedDay;
-                  });
-                  if (start != null && end != null) {
-                    _addLeaveRange(start, end);
-                  } else {
-                    setState(() {
-                      _rangeStart = start;
-                      _rangeEnd = end;
-                    });
-                  }
-                },
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _rangeStart = null;
-                    _rangeEnd = null;
-                    _focusedDay = focusedDay;
-                  });
-                  _toggleSingleDay(selectedDay);
-                },
-                calendarFormat: CalendarFormat.month,
-                calendarStyle: CalendarStyle(
-                  outsideDaysVisible: false,
-                  rangeHighlightColor: _getLeaveColor(
-                    _selectedLeaveType.name,
-                  ).withValues(alpha: 0.3),
-                  rangeStartDecoration: BoxDecoration(
-                    color: _getLeaveColor(_selectedLeaveType.name),
-                    shape: BoxShape.circle,
-                  ),
-                  rangeEndDecoration: BoxDecoration(
-                    color: _getLeaveColor(_selectedLeaveType.name),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                calendarBuilders: CalendarBuilders(
-                  defaultBuilder: (context, day, focusedDay) {
-                    final dateKey = _formatDate(day);
-                    final leaveType = _leaveRecords[dateKey];
-                    final shiftColor = _getShiftColor(day);
-                    final isOff = _isOffDay(day);
-
-                    if (leaveType != null) {
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: _getLeaveColor(leaveType),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                day.day.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Icon(
-                                _getLeaveIcon(leaveType),
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    // Show shift color for days without leave
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: shiftColor.withValues(alpha: isOff ? 0.15 : 0.3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          day.day.toString(),
-                          style: TextStyle(
-                            color: isOff ? Colors.grey : Colors.black,
-                            fontWeight: isOff ? FontWeight.normal : FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  todayBuilder: (context, day, focusedDay) {
-                    final dateKey = _formatDate(day);
-                    final leaveType = _leaveRecords[dateKey];
-                    final shiftColor = _getShiftColor(day);
-                    final isOff = _isOffDay(day);
-
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: leaveType != null
-                            ? _getLeaveColor(leaveType)
-                            : shiftColor.withValues(alpha: isOff ? 0.15 : 0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: CupertinoColors.systemRed,
-                          width: 3,
-                        ),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              day.day.toString(),
-                              style: TextStyle(
-                                color: leaveType != null ? Colors.white : null,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (leaveType != null)
-                              Icon(
-                                _getLeaveIcon(leaveType),
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            // Legend
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildLegendItem('Vacation', Colors.blue),
-                  _buildLegendItem('Sick Leave', Colors.orange),
-                  _buildLegendItem('Urgent', Colors.red),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAndroidVacation(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vacation / Leave')),
+      appBar: AppBar(
+        title: const Text('Vacation / Leave'),
+      ),
       body: Column(
         children: [
           // Leave type selector
@@ -2765,24 +1789,9 @@ class _VacationScreenState extends State<VacationScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildLeaveTypeChip(
-                  LeaveType.vacation,
-                  'Vacation',
-                  Colors.blue,
-                  Icons.beach_access,
-                ),
-                _buildLeaveTypeChip(
-                  LeaveType.sickLeave,
-                  'Sick',
-                  Colors.orange,
-                  Icons.local_hospital,
-                ),
-                _buildLeaveTypeChip(
-                  LeaveType.urgent,
-                  'Urgent',
-                  Colors.red,
-                  Icons.warning,
-                ),
+                _buildLeaveTypeChip(LeaveType.vacation, 'Vacation', Colors.blue, Icons.beach_access),
+                _buildLeaveTypeChip(LeaveType.sickLeave, 'Sick', Colors.orange, Icons.local_hospital),
+                _buildLeaveTypeChip(LeaveType.urgent, 'Urgent', Colors.red, Icons.warning),
               ],
             ),
           ),
@@ -2790,18 +1799,12 @@ class _VacationScreenState extends State<VacationScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
             margin: const EdgeInsets.symmetric(horizontal: 16.0),
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.touch_app,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.touch_app, size: 16, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -2831,7 +1834,7 @@ class _VacationScreenState extends State<VacationScreen> {
                 setState(() {
                   _focusedDay = focusedDay;
                 });
-
+                
                 // When both start and end are selected, add leave for range immediately
                 if (start != null && end != null) {
                   _addLeaveRange(start, end);
@@ -2854,9 +1857,7 @@ class _VacationScreenState extends State<VacationScreen> {
               calendarFormat: CalendarFormat.month,
               calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
-                rangeHighlightColor: _getLeaveColor(
-                  _selectedLeaveType.name,
-                ).withValues(alpha: 0.3),
+                rangeHighlightColor: _getLeaveColor(_selectedLeaveType.name).withValues(alpha: 0.3),
                 rangeStartDecoration: BoxDecoration(
                   color: _getLeaveColor(_selectedLeaveType.name),
                   shape: BoxShape.circle,
@@ -2870,9 +1871,8 @@ class _VacationScreenState extends State<VacationScreen> {
                 defaultBuilder: (context, day, focusedDay) {
                   final dateKey = _formatDate(day);
                   final leaveType = _leaveRecords[dateKey];
-                  final shiftColor = _getShiftColor(day);
-                  final isOff = _isOffDay(day);
-
+                  final dutyColor = _getDutyColor(day);
+                  
                   if (leaveType != null) {
                     return Container(
                       margin: const EdgeInsets.all(4),
@@ -2886,16 +1886,9 @@ class _VacationScreenState extends State<VacationScreen> {
                           children: [
                             Text(
                               day.day.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
-                            Icon(
-                              _getLeaveIcon(leaveType),
-                              size: 12,
-                              color: Colors.white,
-                            ),
+                            Icon(_getLeaveIcon(leaveType), size: 12, color: Colors.white),
                           ],
                         ),
                       ),
@@ -2905,16 +1898,13 @@ class _VacationScreenState extends State<VacationScreen> {
                   return Container(
                     margin: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: shiftColor.withValues(alpha: isOff ? 0.15 : 0.3),
-                      borderRadius: BorderRadius.circular(8),
+                      color: dutyColor.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Text(
                         day.day.toString(),
-                        style: TextStyle(
-                          color: isOff ? Colors.grey : Colors.black,
-                          fontWeight: isOff ? FontWeight.normal : FontWeight.w500,
-                        ),
+                        style: const TextStyle(color: Colors.black),
                       ),
                     ),
                   );
@@ -2922,15 +1912,12 @@ class _VacationScreenState extends State<VacationScreen> {
                 todayBuilder: (context, day, focusedDay) {
                   final dateKey = _formatDate(day);
                   final leaveType = _leaveRecords[dateKey];
-                  final shiftColor = _getShiftColor(day);
-                  final isOff = _isOffDay(day);
-
+                  final dutyColor = _getDutyColor(day);
+                  
                   return Container(
                     margin: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: leaveType != null
-                          ? _getLeaveColor(leaveType)
-                          : shiftColor.withValues(alpha: isOff ? 0.15 : 0.3),
+                      color: leaveType != null ? _getLeaveColor(leaveType) : dutyColor.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.red, width: 3),
                     ),
@@ -2941,16 +1928,12 @@ class _VacationScreenState extends State<VacationScreen> {
                           Text(
                             day.day.toString(),
                             style: TextStyle(
-                              color: leaveType != null ? Colors.white : null,
+                              color: leaveType != null ? Colors.white : Colors.black,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           if (leaveType != null)
-                            Icon(
-                              _getLeaveIcon(leaveType),
-                              size: 12,
-                              color: Colors.white,
-                            ),
+                            Icon(_getLeaveIcon(leaveType), size: 12, color: Colors.white),
                         ],
                       ),
                     ),
@@ -2976,19 +1959,13 @@ class _VacationScreenState extends State<VacationScreen> {
     );
   }
 
-  Widget _buildLeaveTypeChip(
-    LeaveType type,
-    String label,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _buildLeaveTypeChip(LeaveType type, String label, Color color, IconData icon) {
     final isSelected = _selectedLeaveType == type;
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedLeaveType = type;
-          _vacationFirstDate =
-              null; // Clear pending vacation range when switching types
+          _vacationFirstDate = null; // Clear pending vacation range when switching types
         });
       },
       child: Container(
@@ -2996,7 +1973,10 @@ class _VacationScreenState extends State<VacationScreen> {
         decoration: BoxDecoration(
           color: isSelected ? color : color.withAlpha(50),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color, width: isSelected ? 3 : 1),
+          border: Border.all(
+            color: color,
+            width: isSelected ? 3 : 1,
+          ),
         ),
         child: Row(
           children: [
@@ -3046,7 +2026,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   List<int> _shiftPattern = [0, 1, 2, 3, 3];
   DateTime _cycleStartDate = DateTime(2026, 2, 1);
   String _selectedShift = 'A';
-
+  
   final Map<String, int> _shiftOffsets = {
     'A': 2,
     'B': 3,
@@ -3063,21 +2043,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-
+    
     // Load leave records
     final stored = prefs.getStringList('leave_records_list') ?? [];
-
+    
     // Load shift pattern
     final patternStr = prefs.getString('shift_pattern') ?? '0,1,2,3,3';
     final pattern = patternStr.split(',').map((e) => int.parse(e)).toList();
-
+    
     // Load cycle start date
     final dateStr = prefs.getString('cycle_start_date') ?? '2026-02-01';
     final cycleDate = DateTime.parse(dateStr);
-
+    
     // Load selected shift
     final shift = prefs.getString('selectedShift') ?? 'A';
-
+    
     setState(() {
       _leaveRecords = {};
       for (var entry in stored) {
@@ -3098,7 +2078,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     int cycle = (daysSince + offset) % _shiftPattern.length;
     if (cycle < 0) cycle += _shiftPattern.length;
     final dutyType = _shiftPattern[cycle];
-    return dutyType != 3; // Not a rest day
+    return dutyType != 3; // Not a rest day (off day)
   }
 
   List<MapEntry<String, String>> _getFilteredRecords() {
@@ -3108,23 +2088,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
       ..sort((a, b) => b.key.compareTo(a.key)); // Sort by date descending
   }
 
-  // Count leave by type - only on work days
-  int _countByTypeOnWorkDays(String type) {
-    return _leaveRecords.entries.where((e) {
-      if (!e.key.startsWith('$_selectedYear-') || e.value != type) return false;
-      try {
-        final date = DateTime.parse(e.key);
-        return _isShiftDay(date); // Only count if it's a work day
-      } catch (_) {
-        return false;
-      }
-    }).length;
-  }
-
-  // Count all leave records of a type (for display)
   int _countByType(String type) {
     return _leaveRecords.entries
         .where((e) => e.key.startsWith('$_selectedYear-') && e.value == type)
+        .where((e) {
+          // Only count if it's a shift day (not an off day)
+          try {
+            final parts = e.key.split('-');
+            final date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+            return _isShiftDay(date);
+          } catch (_) {
+            return false;
+          }
+        })
         .length;
   }
 
@@ -3170,21 +2146,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   String _formatDisplayDate(String dateKey) {
     try {
       final parts = dateKey.split('-');
-      final months = [
-        '',
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
+      final months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return '${months[int.parse(parts[1])]} ${int.parse(parts[2])}, ${parts[0]}';
     } catch (e) {
       return dateKey;
@@ -3195,9 +2157,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final now = DateTime.now();
     final startOfYear = DateTime(_selectedYear, 1, 1);
     DateTime endDate;
-
+    
     if (_selectedYear < now.year) {
       // Past year - count full year
+      final isLeapYear = (_selectedYear % 4 == 0 && _selectedYear % 100 != 0) || (_selectedYear % 400 == 0);
       endDate = DateTime(_selectedYear, 12, 31);
     } else if (_selectedYear == now.year) {
       // Current year - count days from Jan 1 to today
@@ -3206,7 +2169,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
       // Future year - no days yet
       return 0;
     }
-
+    
     // Count only shift days (not rest days)
     int shiftDays = 0;
     DateTime current = startOfYear;
@@ -3222,283 +2185,178 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredRecords = _getFilteredRecords();
-
-    // Display counts (all records)
     final vacationCount = _countByType('vacation');
     final sickCount = _countByType('sickLeave');
     final urgentCount = _countByType('urgent');
-
-    // Calculation counts (only work days)
-    final vacationOnWorkDays = _countByTypeOnWorkDays('vacation');
-    final sickOnWorkDays = _countByTypeOnWorkDays('sickLeave');
-    final urgentOnWorkDays = _countByTypeOnWorkDays('urgent');
-
-    final totalAbsencesOnWorkDays =
-        vacationOnWorkDays + sickOnWorkDays + urgentOnWorkDays;
+    final totalAbsences = vacationCount + sickCount + urgentCount;
     final totalScheduled = _getTotalScheduledShiftDays();
-    final actualWorked = totalScheduled - totalAbsencesOnWorkDays;
-    final percentage = totalScheduled > 0
-        ? (actualWorked / totalScheduled) * 100
-        : 0.0;
-
-    if (isIOS) {
-      return CupertinoPageScaffold(
-        navigationBar: const CupertinoNavigationBar(
-          middle: Text('Leave Records'),
-        ),
-        child: SafeArea(
-          child: _buildRecordsContent(
-            filteredRecords,
-            vacationCount,
-            sickCount,
-            urgentCount,
-            totalAbsencesOnWorkDays,
-            totalScheduled,
-            actualWorked,
-            percentage,
-          ),
-        ),
-      );
-    }
+    final actualWorked = totalScheduled - totalAbsences;
+    final percentage = totalScheduled > 0 ? (actualWorked / totalScheduled) * 100 : 0.0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Leave Records')),
-      body: _buildRecordsContent(
-        filteredRecords,
-        vacationCount,
-        sickCount,
-        urgentCount,
-        totalAbsencesOnWorkDays,
-        totalScheduled,
-        actualWorked,
-        percentage,
+      appBar: AppBar(
+        title: const Text('Leave Records'),
+      ),
+      body: Column(
+        children: [
+          // Year selector
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: () {
+                    setState(() {
+                      _selectedYear--;
+                    });
+                  },
+                ),
+                Text(
+                  '$_selectedYear',
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: () {
+                    setState(() {
+                      _selectedYear++;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Summary cards - Row 1
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(child: _buildSummaryCard('Total Absences', totalAbsences, Colors.purple, Icons.event_busy)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSummaryCard('Vacation', vacationCount, Colors.blue, Icons.beach_access)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Summary cards - Row 2
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(child: _buildSummaryCard('Sick', sickCount, Colors.orange, Icons.local_hospital)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSummaryCard('Urgent', urgentCount, Colors.red, Icons.warning)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Actual Days Worked Card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Card(
+              elevation: 2,
+              color: Colors.green[50],
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.work, color: Colors.green, size: 28),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Actual Days Worked ≈ $actualWorked',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$totalScheduled scheduled - $totalAbsences absences on work days',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 12),
+                    // Percentage
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${percentage.toStringAsFixed(1)}% Attendance',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Only excludes off days from shift pattern',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(),
+          // Records list
+          Expanded(
+            child: filteredRecords.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No leave records for $_selectedYear',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredRecords.length,
+                    itemBuilder: (context, index) {
+                      final record = filteredRecords[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _getLeaveColor(record.value),
+                          child: Icon(_getLeaveIcon(record.value), color: Colors.white, size: 20),
+                        ),
+                        title: Text(_formatDisplayDate(record.key)),
+                        subtitle: Text(_getLeaveLabel(record.value)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                          onPressed: () => _deleteRecord(record.key),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildRecordsContent(
-    List<MapEntry<String, String>> filteredRecords,
-    int vacationCount,
-    int sickCount,
-    int urgentCount,
-    int totalAbsencesOnWorkDays,
-    int totalScheduled,
-    int actualWorked,
-    double percentage,
-  ) {
-    return Column(
-      children: [
-        // Year selector
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              isIOS
-                  ? CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      child: const Icon(CupertinoIcons.chevron_left),
-                      onPressed: () => setState(() => _selectedYear--),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () => setState(() => _selectedYear--),
-                    ),
-              Text(
-                '$_selectedYear',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              isIOS
-                  ? CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      child: const Icon(CupertinoIcons.chevron_right),
-                      onPressed: () => setState(() => _selectedYear++),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () => setState(() => _selectedYear++),
-                    ),
-            ],
-          ),
-        ),
-        // Summary cards - Row 1
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard(
-                  'Work Day Absences',
-                  totalAbsencesOnWorkDays,
-                  Colors.purple,
-                  isIOS
-                      ? CupertinoIcons.calendar_badge_minus
-                      : Icons.event_busy,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Vacation',
-                  vacationCount,
-                  Colors.blue,
-                  isIOS ? CupertinoIcons.sun_max : Icons.beach_access,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Summary cards - Row 2
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard(
-                  'Sick',
-                  sickCount,
-                  Colors.orange,
-                  isIOS ? CupertinoIcons.bandage : Icons.local_hospital,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Urgent',
-                  urgentCount,
-                  Colors.red,
-                  isIOS
-                      ? CupertinoIcons.exclamationmark_triangle
-                      : Icons.warning,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Actual Days Worked Card
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Card(
-            elevation: 2,
-            color: Colors.green[50],
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.work, color: Colors.green, size: 28),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Actual Days Worked ≈ $actualWorked',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$totalScheduled work days - $totalAbsencesOnWorkDays absences on work days',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 12),
-                  // Percentage
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${percentage.toStringAsFixed(1)}% Attendance',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Only counts leave on scheduled work days (Shift $_selectedShift)',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey[500],
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Divider(),
-        // Records list
-        Expanded(
-          child: filteredRecords.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No leave records for $_selectedYear',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: filteredRecords.length,
-                  itemBuilder: (context, index) {
-                    final record = filteredRecords[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: _getLeaveColor(record.value),
-                        child: Icon(
-                          _getLeaveIcon(record.value),
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(_formatDisplayDate(record.key)),
-                      subtitle: Text(_getLeaveLabel(record.value)),
-                      trailing: IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () => _deleteRecord(record.key),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryCard(
-    String label,
-    int count,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _buildSummaryCard(String label, int count, Color color, IconData icon) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -3509,11 +2367,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             const SizedBox(height: 8),
             Text(
               '$count',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
             ),
             Text(
               label,
@@ -3530,9 +2384,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Record'),
-        content: Text(
-          'Remove leave record for ${_formatDisplayDate(dateKey)}?',
-        ),
+        content: Text('Remove leave record for ${_formatDisplayDate(dateKey)}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -3551,9 +2403,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         _leaveRecords.remove(dateKey);
       });
       final prefs = await SharedPreferences.getInstance();
-      final list = _leaveRecords.entries
-          .map((e) => '${e.key}|${e.value}')
-          .toList();
+      final list = _leaveRecords.entries.map((e) => '${e.key}|${e.value}').toList();
       await prefs.setStringList('leave_records_list', list);
     }
   }
@@ -3564,40 +2414,6 @@ class InfoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isIOS) {
-      return CupertinoPageScaffold(
-        navigationBar: const CupertinoNavigationBar(
-          middle: Text('Information'),
-        ),
-        child: const SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Dedicated From',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: CupertinoColors.activeBlue,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text('Abdullah Aldihani', style: TextStyle(fontSize: 20)),
-                SizedBox(height: 5),
-                Text(
-                  '99074883',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(title: const Text('Information')),
       body: const Center(
@@ -3609,7 +2425,10 @@ class InfoScreen extends StatelessWidget {
               style: TextStyle(fontSize: 24, color: Colors.blue),
             ),
             SizedBox(height: 10),
-            Text('Abdullah Aldihani', style: TextStyle(fontSize: 20)),
+            Text(
+              'Abdullah Aldihani',
+              style: TextStyle(fontSize: 20),
+            ),
             SizedBox(height: 5),
             Text(
               '99074883',
@@ -3621,3 +2440,4 @@ class InfoScreen extends StatelessWidget {
     );
   }
 }
+
