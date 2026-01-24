@@ -264,6 +264,11 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     final notificationService = NotificationService();
     await notificationService.cancelAllNotifications();
     
+    // Check if notifications are enabled
+    final prefs = await SharedPreferences.getInstance();
+    final notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+    if (!notificationsEnabled) return;
+    
     // Schedule notifications for the next 7 days
     for (int i = 0; i < 7; i++) {
       final date = DateTime.now().add(Duration(days: i));
@@ -887,6 +892,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Cycle start date
   DateTime cycleStartDate = DateTime(2026, 2, 1);
   int todayCycleDay = 1; // For "Apply from today" feature
+  
+  // Notification setting
+  bool _notificationsEnabled = true;
 
   @override
   void initState() {
@@ -937,6 +945,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (dateStr != null) {
         cycleStartDate = DateTime.parse(dateStr);
       }
+      
+      // Load notification setting
+      _notificationsEnabled = _prefs.getBool('notifications_enabled') ?? true;
     });
   }
 
@@ -988,6 +999,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'Notifications',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            title: const Text('Enable Notifications'),
+            subtitle: const Text(
+              'A reminder will be sent 1 hour before shift and 2 hours after shift',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            value: _notificationsEnabled,
+            onChanged: (value) async {
+              setState(() {
+                _notificationsEnabled = value;
+              });
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('notifications_enabled', value);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(value 
+                    ? 'Notifications enabled' 
+                    : 'Notifications disabled'),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
           const Text(
