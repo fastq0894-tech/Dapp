@@ -1489,9 +1489,11 @@ class VacationScreen extends StatefulWidget {
 
 class _VacationScreenState extends State<VacationScreen> {
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
   Map<String, String> _leaveRecords = {}; // date -> leave type
   LeaveType _selectedLeaveType = LeaveType.vacation;
+  RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOn;
 
   @override
   void initState() {
@@ -1569,20 +1571,84 @@ class _VacationScreenState extends State<VacationScreen> {
     }
   }
 
-  void _toggleLeave(DateTime day) {
-    final dateKey = _formatDate(day);
+  void _addLeaveRange(DateTime start, DateTime end) {
     final leaveTypeStr = _selectedLeaveType.name;
+    DateTime current = start;
     
-    setState(() {
-      if (_leaveRecords[dateKey] == leaveTypeStr) {
-        // Remove if same type clicked again
-        _leaveRecords.remove(dateKey);
-      } else {
-        // Add or change leave type
-        _leaveRecords[dateKey] = leaveTypeStr;
-      }
-    });
+    while (!current.isAfter(end)) {
+      final dateKey = _formatDate(current);
+      _leaveRecords[dateKey] = leaveTypeStr;
+      current = current.add(const Duration(days: 1));
+    }
+    
+    setState(() {});
     _saveLeaveRecords();
+    
+    final days = end.difference(start).inDays + 1;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Added $days day(s) of ${_getLeaveLabel(leaveTypeStr)}')),
+    );
+  }
+
+  void _removeLeaveRange(DateTime start, DateTime end) {
+    DateTime current = start;
+    
+    while (!current.isAfter(end)) {
+      final dateKey = _formatDate(current);
+      _leaveRecords.remove(dateKey);
+      current = current.add(const Duration(days: 1));
+    }
+    
+    setState(() {});
+    _saveLeaveRecords();
+    
+    final days = end.difference(start).inDays + 1;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Removed $days day(s) of leave')),
+    );
+  }
+
+  void _showRangeActionDialog(DateTime start, DateTime end) {
+    final days = end.difference(start).inDays + 1;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$days Day(s) Selected'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_formatDate(start)} to ${_formatDate(end)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text('Leave type: ${_getLeaveLabel(_selectedLeaveType.name)}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _removeLeaveRange(start, end);
+            },
+            child: const Text('Remove Leave', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _addLeaveRange(start, end);
+            },
+            child: const Text('Add Leave'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1605,31 +1671,71 @@ class _VacationScreenState extends State<VacationScreen> {
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'Tap a day to mark/unmark leave',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.touch_app, size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tap start date, then tap end date to select range',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
-          // Calendar
+          // Calendar with range selection
           Expanded(
             child: TableCalendar(
               firstDay: DateTime(2020, 1, 1),
               lastDay: DateTime(2030, 12, 31),
               focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
+              rangeStartDay: _rangeStart,
+              rangeEndDay: _rangeEnd,
+              rangeSelectionMode: _rangeSelectionMode,
+              onRangeSelected: (start, end, focusedDay) {
                 setState(() {
-                  _selectedDay = selectedDay;
+                  _rangeStart = start;
+                  _rangeEnd = end;
                   _focusedDay = focusedDay;
                 });
-                _toggleLeave(selectedDay);
+                
+                // When both start and end are selected, show action dialog
+                if (start != null && end != null) {
+                  _showRangeActionDialog(start, end);
+                }
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                // For single day selection, use range with same start/end
+                setState(() {
+                  _rangeStart = selectedDay;
+                  _rangeEnd = null;
+                  _focusedDay = focusedDay;
+                });
               },
               calendarFormat: CalendarFormat.month,
-              calendarStyle: const CalendarStyle(
+              calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
+                rangeHighlightColor: _getLeaveColor(_selectedLeaveType.name).withValues(alpha: 0.3),
+                rangeStartDecoration: BoxDecoration(
+                  color: _getLeaveColor(_selectedLeaveType.name),
+                  shape: BoxShape.circle,
+                ),
+                rangeEndDecoration: BoxDecoration(
+                  color: _getLeaveColor(_selectedLeaveType.name),
+                  shape: BoxShape.circle,
+                ),
               ),
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: (context, day, focusedDay) {
@@ -1691,15 +1797,33 @@ class _VacationScreenState extends State<VacationScreen> {
               ),
             ),
           ),
-          // Legend
+          // Legend and clear selection button
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
               children: [
-                _buildLegendItem('Vacation', Colors.blue),
-                _buildLegendItem('Sick Leave', Colors.orange),
-                _buildLegendItem('Urgent', Colors.red),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildLegendItem('Vacation', Colors.blue),
+                    _buildLegendItem('Sick Leave', Colors.orange),
+                    _buildLegendItem('Urgent', Colors.red),
+                  ],
+                ),
+                if (_rangeStart != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _rangeStart = null;
+                          _rangeEnd = null;
+                        });
+                      },
+                      icon: const Icon(Icons.clear, size: 18),
+                      label: const Text('Clear Selection'),
+                    ),
+                  ),
               ],
             ),
           ),
