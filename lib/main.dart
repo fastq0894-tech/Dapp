@@ -8,14 +8,6 @@ import 'services/notification_service.dart';
 // Helper to check if running on iOS
 bool get isIOS => Platform.isIOS;
 
-// Global shift colors that can be updated from Settings
-Map<String, Color> shiftColors = {
-  'morning': Colors.blue,
-  'evening': Colors.orange,
-  'night': Colors.black,
-  'off': Colors.white,
-};
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -218,6 +210,12 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
 
   late SharedPreferences _prefs;
   bool _isLoaded = false;
+  Map<String, Color> shiftColors = {
+    'morning': Colors.blue,
+    'evening': Colors.orange,
+    'night': Colors.black,
+    'off': Colors.white,
+  };
 
   // Shift pattern: list of duty types for each day in cycle
   // 0 = morning, 1 = evening, 2 = night, 3 = off
@@ -633,11 +631,9 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
   }
 
   Widget _buildIOSCalendar(BuildContext context) {
-    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('Shift Schedule'),
-        backgroundColor: isDark ? CupertinoColors.black : CupertinoColors.white,
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Shift Schedule'),
       ),
       child: SafeArea(
         child: Column(
@@ -726,20 +722,6 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
       lastDay: DateTime.utc(2030, 12, 31),
       focusedDay: focusedDay,
       rowHeight: 42,
-      headerStyle: HeaderStyle(
-        titleTextStyle: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.bold,
-          decoration: TextDecoration.none,
-        ),
-        formatButtonTextStyle: const TextStyle(decoration: TextDecoration.none),
-        leftChevronIcon: const Icon(Icons.chevron_left),
-        rightChevronIcon: const Icon(Icons.chevron_right),
-      ),
-      daysOfWeekStyle: const DaysOfWeekStyle(
-        weekdayStyle: TextStyle(decoration: TextDecoration.none),
-        weekendStyle: TextStyle(decoration: TextDecoration.none),
-      ),
       selectedDayPredicate: (day) => isSameDay(selectedDay, day),
       onDaySelected: (selected, focused) {
         setState(() {
@@ -920,7 +902,6 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.none,
                         ),
                       ),
                     ],
@@ -931,17 +912,13 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.none,
                       color: getDutyColor(DateTime.now(), selectedShift),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     getDuty(DateTime.now(), selectedShift),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      decoration: TextDecoration.none,
-                    ),
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ],
               ),
@@ -983,7 +960,6 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.none,
                           ),
                         ),
                       ],
@@ -994,17 +970,13 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
                         color: getDutyColor(selectedDay!, selectedShift),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       getDuty(selectedDay!, selectedShift),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        decoration: TextDecoration.none,
-                      ),
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ],
                 ),
@@ -1080,7 +1052,6 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                     'Hold on a date to add a note',
                     style: TextStyle(
                       fontSize: 12,
-                      decoration: TextDecoration.none,
                       color: isIOS
                           ? CupertinoColors.secondaryLabel
                           : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1211,12 +1182,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildIOSSettings(BuildContext context) {
-    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('Settings'),
-        backgroundColor: isDark ? CupertinoColors.black : CupertinoColors.white,
-      ),
+      navigationBar: const CupertinoNavigationBar(middle: Text('Settings')),
       child: SafeArea(
         child: ListView(
           children: [
@@ -1290,10 +1257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       final color = await _showColorPicker(morningColor);
                       if (color != null) {
-                        setState(() {
-                          morningColor = color;
-                          shiftColors['morning'] = color;
-                        });
+                        setState(() => morningColor = color);
                         await _saveColor('color_morning', morningColor);
                       }
                     },
@@ -1314,10 +1278,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       final color = await _showColorPicker(eveningColor);
                       if (color != null) {
-                        setState(() {
-                          eveningColor = color;
-                          shiftColors['evening'] = color;
-                        });
+                        setState(() => eveningColor = color);
                         await _saveColor('color_evening', eveningColor);
                       }
                     },
@@ -1338,10 +1299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       final color = await _showColorPicker(nightColor);
                       if (color != null) {
-                        setState(() {
-                          nightColor = color;
-                          shiftColors['night'] = color;
-                        });
+                        setState(() => nightColor = color);
                         await _saveColor('color_night', nightColor);
                       }
                     },
@@ -1807,9 +1765,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (color != null) {
                   setState(() {
                     morningColor = color;
-                    shiftColors['morning'] = color;
                   });
-                  await _saveColor('color_morning', morningColor);
                 }
               },
               child: Container(
@@ -1832,9 +1788,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (color != null) {
                   setState(() {
                     eveningColor = color;
-                    shiftColors['evening'] = color;
                   });
-                  await _saveColor('color_evening', eveningColor);
                 }
               },
               child: Container(
@@ -1857,9 +1811,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (color != null) {
                   setState(() {
                     nightColor = color;
-                    shiftColors['night'] = color;
                   });
-                  await _saveColor('color_night', nightColor);
                 }
               },
               child: Container(
@@ -1876,11 +1828,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 30),
           ElevatedButton(
             onPressed: () async {
-              setState(() {
-                shiftColors['morning'] = morningColor;
-                shiftColors['evening'] = eveningColor;
-                shiftColors['night'] = nightColor;
-              });
               await _saveColor('color_morning', morningColor);
               await _saveColor('color_evening', eveningColor);
               await _saveColor('color_night', nightColor);
@@ -2327,7 +2274,7 @@ class _VacationScreenState extends State<VacationScreen> {
   Map<String, String> _leaveRecords = {}; // date -> leave type
   LeaveType _selectedLeaveType = LeaveType.vacation;
   final RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOff;
-
+  
   // Shift-related variables
   String _selectedShift = 'A';
   List<int> _shiftPattern = [0, 1, 2, 3, 3];
@@ -2335,7 +2282,7 @@ class _VacationScreenState extends State<VacationScreen> {
   Color _morningColor = Colors.blue;
   Color _eveningColor = Colors.orange;
   Color _nightColor = Colors.black;
-
+  
   final Map<String, int> _shiftOffsets = {
     'A': 2,
     'B': 3,
@@ -2370,22 +2317,16 @@ class _VacationScreenState extends State<VacationScreen> {
           _leaveRecords[parts[0]] = parts[1];
         }
       }
-
+      
       // Load shift settings
       _selectedShift = prefs.getString('selectedShift') ?? 'A';
       final patternStr = prefs.getString('shift_pattern') ?? '0,1,2,3,3';
       _shiftPattern = patternStr.split(',').map((e) => int.parse(e)).toList();
       final dateStr = prefs.getString('cycle_start_date') ?? '2026-02-01';
       _cycleStartDate = DateTime.parse(dateStr);
-      _morningColor = Color(
-        prefs.getInt('morningColor') ?? Colors.blue.toARGB32(),
-      );
-      _eveningColor = Color(
-        prefs.getInt('eveningColor') ?? Colors.orange.toARGB32(),
-      );
-      _nightColor = Color(
-        prefs.getInt('nightColor') ?? Colors.black.toARGB32(),
-      );
+      _morningColor = Color(prefs.getInt('morningColor') ?? Colors.blue.toARGB32());
+      _eveningColor = Color(prefs.getInt('eveningColor') ?? Colors.orange.toARGB32());
+      _nightColor = Color(prefs.getInt('nightColor') ?? Colors.black.toARGB32());
     });
   }
 
@@ -2403,7 +2344,7 @@ class _VacationScreenState extends State<VacationScreen> {
     int cycle = (daysSince + offset) % _shiftPattern.length;
     if (cycle < 0) cycle += _shiftPattern.length;
     final dutyType = _shiftPattern[cycle];
-
+    
     switch (dutyType) {
       case 0:
         return _morningColor;
@@ -2416,7 +2357,7 @@ class _VacationScreenState extends State<VacationScreen> {
         return Colors.grey.shade300; // Off day
     }
   }
-
+  
   bool _isOffDay(DateTime date) {
     // Normalize both dates to midnight local time to avoid timezone issues
     final normalizedDate = DateTime(date.year, date.month, date.day);
@@ -2587,111 +2528,38 @@ class _VacationScreenState extends State<VacationScreen> {
   }
 
   Widget _buildIOSVacation(BuildContext context) {
-    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('Vacation / Leave'),
-        backgroundColor: isDark ? CupertinoColors.black : CupertinoColors.white,
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Vacation / Leave'),
       ),
       child: SafeArea(
         child: Column(
           children: [
-            // Leave type selector - Custom iOS style buttons
+            // Leave type selector - iOS style
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedLeaveType = LeaveType.vacation;
-                        _vacationFirstDate = null;
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _selectedLeaveType == LeaveType.vacation
-                              ? CupertinoColors.systemBlue
-                              : CupertinoColors.systemGrey5,
-                          borderRadius: const BorderRadius.horizontal(
-                            left: Radius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Vacation',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.none,
-                            color: _selectedLeaveType == LeaveType.vacation
-                                ? CupertinoColors.white
-                                : CupertinoColors.label,
-                          ),
-                        ),
-                      ),
-                    ),
+              child: CupertinoSegmentedControl<LeaveType>(
+                groupValue: _selectedLeaveType,
+                onValueChanged: (LeaveType value) {
+                  setState(() {
+                    _selectedLeaveType = value;
+                    _vacationFirstDate = null;
+                  });
+                },
+                children: const {
+                  LeaveType.vacation: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('Vacation'),
                   ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedLeaveType = LeaveType.sickLeave;
-                        _vacationFirstDate = null;
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _selectedLeaveType == LeaveType.sickLeave
-                              ? CupertinoColors.systemOrange
-                              : CupertinoColors.systemGrey5,
-                        ),
-                        child: Text(
-                          'Sick',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.none,
-                            color: _selectedLeaveType == LeaveType.sickLeave
-                                ? CupertinoColors.white
-                                : CupertinoColors.label,
-                          ),
-                        ),
-                      ),
-                    ),
+                  LeaveType.sickLeave: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('Sick'),
                   ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedLeaveType = LeaveType.urgent;
-                        _vacationFirstDate = null;
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _selectedLeaveType == LeaveType.urgent
-                              ? CupertinoColors.systemRed
-                              : CupertinoColors.systemGrey5,
-                          borderRadius: const BorderRadius.horizontal(
-                            right: Radius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Urgent',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.none,
-                            color: _selectedLeaveType == LeaveType.urgent
-                                ? CupertinoColors.white
-                                : CupertinoColors.label,
-                          ),
-                        ),
-                      ),
-                    ),
+                  LeaveType.urgent: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('Urgent'),
                   ),
-                ],
+                },
               ),
             ),
             Container(
@@ -2720,7 +2588,6 @@ class _VacationScreenState extends State<VacationScreen> {
                       style: const TextStyle(
                         color: CupertinoColors.systemGrey,
                         fontSize: 12,
-                        decoration: TextDecoration.none,
                       ),
                     ),
                   ),
@@ -2737,22 +2604,6 @@ class _VacationScreenState extends State<VacationScreen> {
                 rangeStartDay: _rangeStart,
                 rangeEndDay: _rangeEnd,
                 rangeSelectionMode: _rangeSelectionMode,
-                headerStyle: HeaderStyle(
-                  titleTextStyle: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.none,
-                  ),
-                  formatButtonTextStyle: const TextStyle(
-                    decoration: TextDecoration.none,
-                  ),
-                  leftChevronIcon: const Icon(CupertinoIcons.chevron_left),
-                  rightChevronIcon: const Icon(CupertinoIcons.chevron_right),
-                ),
-                daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(decoration: TextDecoration.none),
-                  weekendStyle: TextStyle(decoration: TextDecoration.none),
-                ),
                 onRangeSelected: (start, end, focusedDay) {
                   setState(() {
                     _focusedDay = focusedDay;
@@ -2836,9 +2687,7 @@ class _VacationScreenState extends State<VacationScreen> {
                           day.day.toString(),
                           style: TextStyle(
                             color: isOff ? Colors.grey : Colors.black,
-                            fontWeight: isOff
-                                ? FontWeight.normal
-                                : FontWeight.w500,
+                            fontWeight: isOff ? FontWeight.normal : FontWeight.w500,
                           ),
                         ),
                       ),
@@ -2978,20 +2827,6 @@ class _VacationScreenState extends State<VacationScreen> {
               rangeStartDay: _rangeStart,
               rangeEndDay: _rangeEnd,
               rangeSelectionMode: _rangeSelectionMode,
-              headerStyle: HeaderStyle(
-                titleTextStyle: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.none,
-                ),
-                formatButtonTextStyle: const TextStyle(
-                  decoration: TextDecoration.none,
-                ),
-              ),
-              daysOfWeekStyle: const DaysOfWeekStyle(
-                weekdayStyle: TextStyle(decoration: TextDecoration.none),
-                weekendStyle: TextStyle(decoration: TextDecoration.none),
-              ),
               onRangeSelected: (start, end, focusedDay) {
                 setState(() {
                   _focusedDay = focusedDay;
@@ -3078,9 +2913,7 @@ class _VacationScreenState extends State<VacationScreen> {
                         day.day.toString(),
                         style: TextStyle(
                           color: isOff ? Colors.grey : Colors.black,
-                          fontWeight: isOff
-                              ? FontWeight.normal
-                              : FontWeight.w500,
+                          fontWeight: isOff ? FontWeight.normal : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -3174,7 +3007,6 @@ class _VacationScreenState extends State<VacationScreen> {
               style: TextStyle(
                 color: isSelected ? Colors.white : color,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                decoration: TextDecoration.none,
               ),
             ),
           ],
@@ -3195,10 +3027,7 @@ class _VacationScreenState extends State<VacationScreen> {
           ),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, decoration: TextDecoration.none),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
@@ -3413,14 +3242,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
         : 0.0;
 
     if (isIOS) {
-      final isDark =
-          MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       return CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Leave Records'),
-          backgroundColor: isDark
-              ? CupertinoColors.black
-              : CupertinoColors.white,
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Leave Records'),
         ),
         child: SafeArea(
           child: _buildRecordsContent(
@@ -3485,7 +3309,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.none,
                 ),
               ),
               isIOS
@@ -3635,11 +3458,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       const SizedBox(height: 16),
                       Text(
                         'No leave records for $_selectedYear',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                          decoration: TextDecoration.none,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
                       ),
                     ],
                   ),
@@ -3746,14 +3565,9 @@ class InfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isIOS) {
-      final isDark =
-          MediaQuery.platformBrightnessOf(context) == Brightness.dark;
       return CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Information'),
-          backgroundColor: isDark
-              ? CupertinoColors.black
-              : CupertinoColors.white,
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Information'),
         ),
         child: const SafeArea(
           child: Center(
@@ -3765,24 +3579,16 @@ class InfoScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24,
                     color: CupertinoColors.activeBlue,
-                    decoration: TextDecoration.none,
                   ),
                 ),
                 SizedBox(height: 10),
-                Text(
-                  'Abdullah Aldihani',
-                  style: TextStyle(
-                    fontSize: 20,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
+                Text('Abdullah Aldihani', style: TextStyle(fontSize: 20)),
                 SizedBox(height: 5),
                 Text(
                   '99074883',
                   style: TextStyle(
                     fontSize: 16,
                     color: CupertinoColors.systemGrey,
-                    decoration: TextDecoration.none,
                   ),
                 ),
               ],
@@ -3800,25 +3606,14 @@ class InfoScreen extends StatelessWidget {
           children: [
             Text(
               'Dedicated From',
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.blue,
-                decoration: TextDecoration.none,
-              ),
+              style: TextStyle(fontSize: 24, color: Colors.blue),
             ),
             SizedBox(height: 10),
-            Text(
-              'Abdullah Aldihani',
-              style: TextStyle(fontSize: 20, decoration: TextDecoration.none),
-            ),
+            Text('Abdullah Aldihani', style: TextStyle(fontSize: 20)),
             SizedBox(height: 5),
             Text(
               '99074883',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-                decoration: TextDecoration.none,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
