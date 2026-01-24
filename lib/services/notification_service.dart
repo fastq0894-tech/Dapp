@@ -46,6 +46,12 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
     
+    // Request exact alarm permission for Android 12+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestExactAlarmsPermission();
+    
     // Request permission for iOS
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
@@ -67,25 +73,29 @@ class NotificationService {
     final DateTime reminderTime = shiftStartTime.subtract(const Duration(hours: 1));
 
     if (reminderTime.isAfter(DateTime.now())) {
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        notificationId,
-        '⏰ Shift Reminder',
-        'Shift $shift starts in 1 hour!\n$duty',
-        tz.TZDateTime.from(reminderTime, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'shift_reminder_channel',
-            'Shift Reminders',
-            channelDescription: 'Reminders before your shift starts',
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
+      try {
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          notificationId,
+          '⏰ Shift Reminder',
+          'Shift $shift starts in 1 hour!\n$duty',
+          tz.TZDateTime.from(reminderTime, tz.local),
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'shift_reminder_channel',
+              'Shift Reminders',
+              channelDescription: 'Reminders before your shift starts',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            ),
           ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } catch (e) {
+        // Exact alarms not permitted, silently fail
+      }
     }
   }
 
@@ -98,25 +108,29 @@ class NotificationService {
     final DateTime checkTime = shiftStartTime.add(const Duration(hours: 2));
 
     if (checkTime.isAfter(DateTime.now())) {
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        notificationId,
-        '📋 Attendance Check',
-        'Have you checked in for Shift $shift?\nDon\'t forget to mark your attendance!',
-        tz.TZDateTime.from(checkTime, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'attendance_channel',
-            'Attendance Checks',
-            channelDescription: 'Reminders to check attendance',
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
+      try {
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          notificationId,
+          '📋 Attendance Check',
+          'Have you checked in for Shift $shift?\nDon\'t forget to mark your attendance!',
+          tz.TZDateTime.from(checkTime, tz.local),
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'attendance_channel',
+              'Attendance Checks',
+              channelDescription: 'Reminders to check attendance',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            ),
           ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } catch (e) {
+        // Exact alarms not permitted, silently fail
+      }
     }
   }
 
