@@ -600,6 +600,8 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
               },
               selectedBuilder: (context, day, focusedDay) {
                 Color color = getDutyColor(day, selectedShift);
+                // Check if it's an off day (white/light color) to use black text
+                bool isOffDay = color == Colors.white || color.computeLuminance() > 0.7;
                 return FutureBuilder<String?>(
                   future: _getNote(day),
                   builder: (context, snapshot) {
@@ -613,10 +615,14 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                           decoration: BoxDecoration(
                             color: color,
                             shape: BoxShape.circle,
+                            border: isOffDay ? Border.all(color: Colors.grey, width: 2) : null,
                           ),
                           child: Text(
                             '${day.day}',
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: isOffDay ? Colors.black : Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         if (hasNote)
@@ -2088,7 +2094,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
       ..sort((a, b) => b.key.compareTo(a.key)); // Sort by date descending
   }
 
-  int _countByType(String type) {
+  int _countByType(String type, {bool onlyPastDates = false}) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
     return _leaveRecords.entries
         .where((e) => e.key.startsWith('$_selectedYear-') && e.value == type)
         .where((e) {
@@ -2096,6 +2105,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
           try {
             final parts = e.key.split('-');
             final date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+            
+            // If onlyPastDates is true, exclude future dates
+            if (onlyPastDates && date.isAfter(today)) {
+              return false;
+            }
+            
             return _isShiftDay(date);
           } catch (_) {
             return false;
@@ -2185,12 +2200,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredRecords = _getFilteredRecords();
+    // For display cards - show all counts for the year
     final vacationCount = _countByType('vacation');
     final sickCount = _countByType('sickLeave');
     final urgentCount = _countByType('urgent');
+    
+    // For actual worked calculation - only count past/today absences (excluding vacation)
+    final sickCountPast = _countByType('sickLeave', onlyPastDates: true);
+    final urgentCountPast = _countByType('urgent', onlyPastDates: true);
+    final absencesForWorked = sickCountPast + urgentCountPast; // Don't count vacation as absence from work
+    
     final totalAbsences = vacationCount + sickCount + urgentCount;
     final totalScheduled = _getTotalScheduledShiftDays();
-    final actualWorked = totalScheduled - totalAbsences;
+    final actualWorked = totalScheduled - absencesForWorked;
     final percentage = totalScheduled > 0 ? (actualWorked / totalScheduled) * 100 : 0.0;
 
     return Scaffold(
