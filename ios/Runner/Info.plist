@@ -45,5 +45,14 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	<key>UIUserNotificationSettings</key>
+	<dict>
+		<key>UIUserNotificationTypeAlert</key>
+		<true/>
+		<key>UIUserNotificationTypeBadge</key>
+		<true/>
+		<key>UIUserNotificationTypeSound</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
