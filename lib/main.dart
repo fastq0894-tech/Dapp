@@ -407,6 +407,22 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
     }
   }
 
+  String getDutyTypeName(DateTime date, String shift) {
+    int offset = shiftOffsets[shift] ?? 0;
+    int c = getCycleDay(date, offset);
+    int dutyType = shiftPattern[c];
+    switch (dutyType) {
+      case 0:
+        return 'Morning Shift';
+      case 1:
+        return 'Evening Shift';
+      case 2:
+        return 'Night Shift';
+      default:
+        return 'Day Off';
+    }
+  }
+
   Color getDutyColor(DateTime date, String shift) {
     int offset = shiftOffsets[shift] ?? 0;
     int c = getCycleDay(date, offset);
@@ -662,65 +678,172 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
               },
             ),
           ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Text(
-                  'Today\'s Duty (${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}):',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(getDuty(DateTime.now(), selectedShift),
-                    style: const TextStyle(fontSize: 20)),
-                const SizedBox(height: 10),
-                if (selectedDay != null)
-                  Text(
-                    'Selected Day Duty (${selectedDay!.year}-${selectedDay!.month}-${selectedDay!.day}):',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                if (selectedDay != null)
-                  Text(getDuty(selectedDay!, selectedShift),
-                      style: const TextStyle(fontSize: 20)),
-                if (selectedDay != null)
-                  const SizedBox(height: 20),
-                if (selectedDay != null)
-                  FutureBuilder<String?>(
-                    future: _getNote(selectedDay!),
-                    builder: (context, snapshot) {
-                      String? note = snapshot.data;
-                      if (note != null && note.isNotEmpty) {
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12.0),
-                          decoration: BoxDecoration(
-                            color: Colors.yellow.withValues(alpha: 0.2),
-                            border: Border.all(color: Colors.orange),
-                            borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 10),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  // Today's Duty Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: getDutyColor(DateTime.now(), selectedShift).withValues(alpha: 0.2),
+                      border: Border.all(
+                        color: getDutyColor(DateTime.now(), selectedShift),
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.today, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Today (${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year})',
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          getDutyTypeName(DateTime.now(), selectedShift),
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: getDutyColor(DateTime.now(), selectedShift),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          getDuty(DateTime.now(), selectedShift),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Selected Day Duty Card
+                  if (selectedDay != null && !isSameDay(selectedDay, DateTime.now()))
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: getDutyColor(selectedDay!, selectedShift).withValues(alpha: 0.15),
+                        border: Border.all(
+                          color: getDutyColor(selectedDay!, selectedShift).withValues(alpha: 0.6),
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Note:',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              const SizedBox(height: 5),
+                              const Icon(Icons.calendar_month, size: 20),
+                              const SizedBox(width: 8),
                               Text(
-                                note,
-                                style: const TextStyle(fontSize: 14),
+                                'Selected (${selectedDay!.day}/${selectedDay!.month}/${selectedDay!.year})',
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
+                          const SizedBox(height: 8),
+                          Text(
+                            getDutyTypeName(selectedDay!, selectedShift),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: getDutyColor(selectedDay!, selectedShift),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            getDuty(selectedDay!, selectedShift),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Note Display
+                  if (selectedDay != null)
+                    const SizedBox(height: 12),
+                  if (selectedDay != null)
+                    FutureBuilder<String?>(
+                      future: _getNote(selectedDay!),
+                      builder: (context, snapshot) {
+                        String? note = snapshot.data;
+                        if (note != null && note.isNotEmpty) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12.0),
+                            decoration: BoxDecoration(
+                              color: Colors.yellow.withValues(alpha: 0.2),
+                              border: Border.all(color: Colors.orange),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.note, size: 18, color: Colors.orange),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Note:',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  note,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  const SizedBox(height: 16),
+                  // Hint text for adding notes
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.touch_app,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Hold on a date to add a note',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
