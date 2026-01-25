@@ -613,9 +613,12 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                           margin: const EdgeInsets.all(4.0),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: color,
+                            color: isOffDay ? Colors.grey.shade300 : color,
                             shape: BoxShape.circle,
-                            border: isOffDay ? Border.all(color: Colors.grey, width: 2) : null,
+                            border: Border.all(
+                              color: isOffDay ? Colors.grey.shade600 : Colors.white,
+                              width: 2,
+                            ),
                           ),
                           child: Text(
                             '${day.day}',
@@ -645,6 +648,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
               },
               todayBuilder: (context, day, focusedDay) {
                 Color color = getDutyColor(day, selectedShift);
+                bool isOffDay = color == Colors.white || color.computeLuminance() > 0.7;
                 return FutureBuilder<String?>(
                   future: _getNote(day),
                   builder: (context, snapshot) {
@@ -656,7 +660,7 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
                           margin: const EdgeInsets.all(4.0),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.5),
+                            color: isOffDay ? Colors.grey.shade200 : color.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: Colors.red,
@@ -696,92 +700,118 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
               child: Column(
                 children: [
                   // Today's Duty Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: getDutyColor(DateTime.now(), selectedShift).withValues(alpha: 0.2),
-                      border: Border.all(
-                        color: getDutyColor(DateTime.now(), selectedShift),
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                  Builder(
+                    builder: (context) {
+                      final todayColor = getDutyColor(DateTime.now(), selectedShift);
+                      final isOffDay = todayColor == Colors.white || todayColor.computeLuminance() > 0.7;
+                      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: isOffDay 
+                              ? (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade100)
+                              : todayColor.withValues(alpha: 0.2),
+                          border: Border.all(
+                            color: isOffDay 
+                                ? (isDarkMode ? Colors.white : Colors.black)
+                                : todayColor,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
                           children: [
-                            const Icon(Icons.today, size: 20),
-                            const SizedBox(width: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.today, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Today (${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year})',
+                                  style: const TextStyle(
+                                      fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
                             Text(
-                              'Today (${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year})',
-                              style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w500),
+                              getDutyTypeName(DateTime.now(), selectedShift),
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: isOffDay 
+                                    ? (isDarkMode ? Colors.white : Colors.black)
+                                    : todayColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              getDuty(DateTime.now(), selectedShift),
+                              style: const TextStyle(fontSize: 16),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          getDutyTypeName(DateTime.now(), selectedShift),
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: getDutyColor(DateTime.now(), selectedShift),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          getDuty(DateTime.now(), selectedShift),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   // Selected Day Duty Card
                   if (selectedDay != null && !isSameDay(selectedDay, DateTime.now()))
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: getDutyColor(selectedDay!, selectedShift).withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: getDutyColor(selectedDay!, selectedShift).withValues(alpha: 0.6),
-                          width: 1.5,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                    Builder(
+                      builder: (context) {
+                        final selectedColor = getDutyColor(selectedDay!, selectedShift);
+                        final isOffDay = selectedColor == Colors.white || selectedColor.computeLuminance() > 0.7;
+                        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: isOffDay 
+                                ? (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade100)
+                                : selectedColor.withValues(alpha: 0.15),
+                            border: Border.all(
+                              color: isOffDay 
+                                  ? (isDarkMode ? Colors.white : Colors.black)
+                                  : selectedColor.withValues(alpha: 0.6),
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
                             children: [
-                              const Icon(Icons.calendar_month, size: 20),
-                              const SizedBox(width: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.calendar_month, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Selected (${selectedDay!.day}/${selectedDay!.month}/${selectedDay!.year})',
+                                    style: const TextStyle(
+                                        fontSize: 14, fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
                               Text(
-                                'Selected (${selectedDay!.day}/${selectedDay!.month}/${selectedDay!.year})',
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500),
+                                getDutyTypeName(selectedDay!, selectedShift),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isOffDay 
+                                      ? (isDarkMode ? Colors.white : Colors.black)
+                                      : selectedColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                getDuty(selectedDay!, selectedShift),
+                                style: const TextStyle(fontSize: 16),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            getDutyTypeName(selectedDay!, selectedShift),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: getDutyColor(selectedDay!, selectedShift),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            getDuty(selectedDay!, selectedShift),
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   // Note Display
                   if (selectedDay != null)
