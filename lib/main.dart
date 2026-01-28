@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/notification_service.dart';
+import 'dart:async';
+import 'dart:math';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,8 +103,803 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+// Pixel Art Animal Types
+enum PixelAnimal { cat, bird, monkey, eagle, horse, rabbit, fox, frog, owl, penguin }
+
+// Pixel Art Animal Painter - Ultra Detailed 24x24 Version
+class PixelAnimalPainter extends CustomPainter {
+  final PixelAnimal animal;
+  final Color color;
+  final bool facingRight;
+  final int frame; // Animation frame 0 or 1
+
+  PixelAnimalPainter({
+    required this.animal,
+    required this.color,
+    this.facingRight = true,
+    this.frame = 0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pixelSize = size.width / 24;
+    
+    void drawPixel(int x, int y, Color c) {
+      final px = facingRight ? x : 23 - x;
+      canvas.drawRect(
+        Rect.fromLTWH(px * pixelSize, y * pixelSize, pixelSize, pixelSize),
+        Paint()..color = c,
+      );
+    }
+    
+    // Helper colors
+    final mainColor = color;
+    final darkColor = Color.fromRGBO(
+      (color.r * 255 * 0.6).round(),
+      (color.g * 255 * 0.6).round(),
+      (color.b * 255 * 0.6).round(),
+      1,
+    );
+    final lightColor = Color.fromRGBO(
+      ((color.r * 255 + (255 - color.r * 255) * 0.4)).round().clamp(0, 255),
+      ((color.g * 255 + (255 - color.g * 255) * 0.4)).round().clamp(0, 255),
+      ((color.b * 255 + (255 - color.b * 255) * 0.4)).round().clamp(0, 255),
+      1,
+    );
+    const white = Colors.white;
+    const black = Colors.black;
+    const pink = Colors.pink;
+
+    switch (animal) {
+      case PixelAnimal.cat:
+        // Ears (outer) - scaled for 24x24
+        for (int x = 4; x <= 6; x++) drawPixel(x, 0, mainColor);
+        for (int x = 16; x <= 18; x++) drawPixel(x, 0, mainColor);
+        for (int x = 3; x <= 7; x++) drawPixel(x, 1, mainColor);
+        for (int x = 15; x <= 19; x++) drawPixel(x, 1, mainColor);
+        for (int x = 3; x <= 7; x++) drawPixel(x, 2, mainColor);
+        for (int x = 15; x <= 19; x++) drawPixel(x, 2, mainColor);
+        // Ears (inner pink)
+        drawPixel(5, 1, pink); drawPixel(5, 2, pink);
+        drawPixel(17, 1, pink); drawPixel(17, 2, pink);
+        // Head
+        for (int x = 4; x <= 18; x++) drawPixel(x, 3, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 4, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 5, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 6, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 7, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 8, mainColor);
+        // Eyes (white part)
+        for (int y = 4; y <= 6; y++) { drawPixel(6, y, white); drawPixel(7, y, white); drawPixel(8, y, white); }
+        for (int y = 4; y <= 6; y++) { drawPixel(14, y, white); drawPixel(15, y, white); drawPixel(16, y, white); }
+        // Pupils
+        drawPixel(7, 5, black); drawPixel(8, 5, black);
+        drawPixel(14, 5, black); drawPixel(15, 5, black);
+        // Eye shine
+        drawPixel(6, 4, Color(0xFFADD8E6));
+        drawPixel(14, 4, Color(0xFFADD8E6));
+        // Nose
+        drawPixel(10, 7, pink); drawPixel(11, 7, pink); drawPixel(12, 7, pink);
+        drawPixel(11, 8, pink);
+        // Whisker dots
+        drawPixel(5, 7, darkColor); drawPixel(6, 7, darkColor);
+        drawPixel(16, 7, darkColor); drawPixel(17, 7, darkColor);
+        // Body
+        for (int x = 4; x <= 18; x++) drawPixel(x, 9, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 10, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 11, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 12, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 13, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 14, mainColor);
+        // Belly (lighter)
+        for (int x = 7; x <= 15; x++) drawPixel(x, 10, lightColor);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 11, lightColor);
+        for (int x = 8; x <= 14; x++) drawPixel(x, 12, lightColor);
+        // Legs (animated)
+        if (frame == 0) {
+          for (int y = 15; y <= 18; y++) { drawPixel(5, y, mainColor); drawPixel(6, y, mainColor); }
+          for (int y = 15; y <= 18; y++) { drawPixel(16, y, mainColor); drawPixel(17, y, mainColor); }
+          drawPixel(5, 19, darkColor); drawPixel(6, 19, darkColor);
+          drawPixel(16, 19, darkColor); drawPixel(17, 19, darkColor);
+        } else {
+          for (int y = 15; y <= 18; y++) { drawPixel(6, y, mainColor); drawPixel(7, y, mainColor); }
+          for (int y = 15; y <= 18; y++) { drawPixel(15, y, mainColor); drawPixel(16, y, mainColor); }
+          drawPixel(6, 19, darkColor); drawPixel(7, 19, darkColor);
+          drawPixel(15, 19, darkColor); drawPixel(16, 19, darkColor);
+        }
+        // Tail (curved up)
+        for (int y = 10; y <= 12; y++) drawPixel(20, y, mainColor);
+        drawPixel(21, 9, mainColor); drawPixel(21, 10, mainColor);
+        drawPixel(22, 7, mainColor); drawPixel(22, 8, mainColor);
+        drawPixel(23, 6, mainColor);
+        break;
+
+      case PixelAnimal.bird:
+        const yellow = Colors.amber;
+        // Crest/head feathers - 24x24
+        for (int x = 14; x <= 17; x++) drawPixel(x, 0, mainColor);
+        for (int x = 13; x <= 17; x++) drawPixel(x, 1, mainColor);
+        for (int x = 12; x <= 16; x++) drawPixel(x, 2, mainColor);
+        // Head
+        for (int x = 10; x <= 17; x++) drawPixel(x, 3, mainColor);
+        for (int x = 9; x <= 17; x++) drawPixel(x, 4, mainColor);
+        for (int x = 9; x <= 16; x++) drawPixel(x, 5, mainColor);
+        for (int x = 8; x <= 15; x++) drawPixel(x, 6, mainColor);
+        // Eye
+        drawPixel(14, 4, white); drawPixel(15, 4, white);
+        drawPixel(14, 5, white); drawPixel(15, 5, white);
+        drawPixel(15, 5, black);
+        // Eye shine
+        drawPixel(14, 4, Color(0xFFADD8E6));
+        // Beak
+        for (int x = 18; x <= 21; x++) drawPixel(x, 4, yellow);
+        for (int x = 18; x <= 22; x++) drawPixel(x, 5, yellow);
+        for (int x = 18; x <= 21; x++) drawPixel(x, 6, yellow);
+        drawPixel(23, 5, yellow);
+        // Body
+        for (int x = 5; x <= 15; x++) drawPixel(x, 7, mainColor);
+        for (int x = 4; x <= 14; x++) drawPixel(x, 8, mainColor);
+        for (int x = 4; x <= 13; x++) drawPixel(x, 9, mainColor);
+        for (int x = 4; x <= 12; x++) drawPixel(x, 10, mainColor);
+        for (int x = 5; x <= 11; x++) drawPixel(x, 11, mainColor);
+        // Belly (lighter)
+        for (int x = 8; x <= 12; x++) drawPixel(x, 8, lightColor);
+        for (int x = 7; x <= 11; x++) drawPixel(x, 9, lightColor);
+        for (int x = 6; x <= 10; x++) drawPixel(x, 10, lightColor);
+        // Wing (animated)
+        if (frame == 0) {
+          // Wing up
+          for (int x = 0; x <= 5; x++) drawPixel(x, 2, darkColor);
+          for (int x = 0; x <= 6; x++) drawPixel(x, 3, mainColor);
+          for (int x = 1; x <= 7; x++) drawPixel(x, 4, mainColor);
+          for (int x = 2; x <= 7; x++) drawPixel(x, 5, mainColor);
+          drawPixel(0, 1, darkColor); drawPixel(1, 1, darkColor);
+        } else {
+          // Wing down
+          for (int x = 2; x <= 5; x++) drawPixel(x, 10, darkColor);
+          for (int x = 1; x <= 6; x++) drawPixel(x, 11, mainColor);
+          for (int x = 0; x <= 5; x++) drawPixel(x, 12, mainColor);
+          drawPixel(0, 13, darkColor); drawPixel(1, 13, darkColor);
+        }
+        // Tail feathers
+        drawPixel(1, 9, darkColor); drawPixel(2, 9, mainColor);
+        drawPixel(0, 10, darkColor); drawPixel(1, 10, darkColor);
+        drawPixel(0, 11, darkColor);
+        // Legs
+        for (int y = 12; y <= 15; y++) { drawPixel(7, y, yellow); drawPixel(8, y, yellow); }
+        drawPixel(6, 16, yellow); drawPixel(7, 16, yellow); drawPixel(8, 16, yellow); drawPixel(9, 16, yellow);
+        for (int y = 12; y <= 15; y++) { drawPixel(10, y, yellow); drawPixel(11, y, yellow); }
+        drawPixel(9, 16, yellow); drawPixel(10, 16, yellow); drawPixel(11, 16, yellow); drawPixel(12, 16, yellow);
+        break;
+
+      case PixelAnimal.monkey:
+        const skinColor = Color(0xFFDEB887); // Tan/skin
+        const darkBrown = Color(0xFF5D4037);
+        // Ears - 24x24
+        drawPixel(2, 4, skinColor); drawPixel(2, 5, skinColor); drawPixel(2, 6, skinColor);
+        drawPixel(19, 4, skinColor); drawPixel(19, 5, skinColor); drawPixel(19, 6, skinColor);
+        // Head (fur)
+        for (int x = 5; x <= 16; x++) drawPixel(x, 1, mainColor);
+        for (int x = 4; x <= 17; x++) drawPixel(x, 2, mainColor);
+        for (int x = 3; x <= 18; x++) drawPixel(x, 3, mainColor);
+        drawPixel(3, 4, mainColor); drawPixel(3, 5, mainColor); drawPixel(3, 6, mainColor);
+        drawPixel(18, 4, mainColor); drawPixel(18, 5, mainColor); drawPixel(18, 6, mainColor);
+        for (int x = 4; x <= 17; x++) drawPixel(x, 7, mainColor);
+        for (int x = 5; x <= 16; x++) drawPixel(x, 8, mainColor);
+        // Face (skin)
+        for (int x = 5; x <= 16; x++) drawPixel(x, 4, skinColor);
+        for (int x = 5; x <= 16; x++) drawPixel(x, 5, skinColor);
+        for (int x = 5; x <= 16; x++) drawPixel(x, 6, skinColor);
+        for (int x = 6; x <= 15; x++) drawPixel(x, 7, skinColor);
+        // Eyes
+        for (int y = 4; y <= 5; y++) { drawPixel(6, y, white); drawPixel(7, y, white); drawPixel(8, y, white); }
+        for (int y = 4; y <= 5; y++) { drawPixel(13, y, white); drawPixel(14, y, white); drawPixel(15, y, white); }
+        drawPixel(7, 5, black); drawPixel(8, 5, black);
+        drawPixel(13, 5, black); drawPixel(14, 5, black);
+        // Nose & mouth
+        drawPixel(9, 6, darkBrown); drawPixel(10, 6, darkBrown); drawPixel(11, 6, darkBrown); drawPixel(12, 6, darkBrown);
+        drawPixel(10, 7, darkBrown); drawPixel(11, 7, darkBrown);
+        // Body
+        for (int x = 6; x <= 15; x++) drawPixel(x, 9, mainColor);
+        for (int x = 5; x <= 16; x++) drawPixel(x, 10, mainColor);
+        for (int x = 5; x <= 16; x++) drawPixel(x, 11, mainColor);
+        for (int x = 5; x <= 16; x++) drawPixel(x, 12, mainColor);
+        for (int x = 6; x <= 15; x++) drawPixel(x, 13, mainColor);
+        // Belly
+        for (int x = 8; x <= 13; x++) drawPixel(x, 10, skinColor);
+        for (int x = 8; x <= 13; x++) drawPixel(x, 11, skinColor);
+        for (int x = 9; x <= 12; x++) drawPixel(x, 12, skinColor);
+        // Arms (animated)
+        if (frame == 0) {
+          drawPixel(4, 9, mainColor); drawPixel(3, 8, mainColor); drawPixel(2, 7, mainColor); drawPixel(1, 6, skinColor); drawPixel(0, 5, skinColor);
+          drawPixel(17, 9, mainColor); drawPixel(18, 8, mainColor); drawPixel(19, 7, mainColor); drawPixel(20, 6, skinColor); drawPixel(21, 5, skinColor);
+        } else {
+          drawPixel(4, 11, mainColor); drawPixel(3, 12, mainColor); drawPixel(2, 13, mainColor); drawPixel(1, 14, skinColor); drawPixel(0, 15, skinColor);
+          drawPixel(17, 11, mainColor); drawPixel(18, 12, mainColor); drawPixel(19, 13, mainColor); drawPixel(20, 14, skinColor); drawPixel(21, 15, skinColor);
+        }
+        // Legs
+        for (int y = 14; y <= 18; y++) { drawPixel(7, y, mainColor); drawPixel(8, y, mainColor); }
+        drawPixel(7, 19, skinColor); drawPixel(8, 19, skinColor);
+        for (int y = 14; y <= 18; y++) { drawPixel(13, y, mainColor); drawPixel(14, y, mainColor); }
+        drawPixel(13, 19, skinColor); drawPixel(14, 19, skinColor);
+        // Tail (curled)
+        drawPixel(17, 13, mainColor); drawPixel(18, 13, mainColor);
+        drawPixel(19, 12, mainColor); drawPixel(20, 12, mainColor);
+        drawPixel(21, 13, mainColor); drawPixel(22, 14, mainColor);
+        drawPixel(22, 15, mainColor); drawPixel(21, 16, mainColor);
+        drawPixel(20, 17, mainColor);
+        break;
+
+      case PixelAnimal.eagle:
+        const whiteEagle = Colors.white;
+        const yellowBeak = Color(0xFFFFD600);
+        const darkWing = Color(0xFF3E2723);
+        // White head - 24x24
+        for (int x = 13; x <= 18; x++) drawPixel(x, 0, whiteEagle);
+        for (int x = 12; x <= 19; x++) drawPixel(x, 1, whiteEagle);
+        for (int x = 12; x <= 20; x++) drawPixel(x, 2, whiteEagle);
+        for (int x = 12; x <= 19; x++) drawPixel(x, 3, whiteEagle);
+        for (int x = 13; x <= 18; x++) drawPixel(x, 4, whiteEagle);
+        // Eye
+        drawPixel(16, 2, black); drawPixel(17, 2, black);
+        drawPixel(16, 3, black);
+        // Eye ring
+        drawPixel(15, 2, Color(0xFFFFEB3B));
+        // Hooked beak
+        for (int x = 20; x <= 23; x++) drawPixel(x, 3, yellowBeak);
+        for (int x = 20; x <= 22; x++) drawPixel(x, 4, yellowBeak);
+        for (int x = 21; x <= 22; x++) drawPixel(x, 5, yellowBeak);
+        drawPixel(22, 6, yellowBeak);
+        // Body (brown)
+        for (int x = 8; x <= 17; x++) drawPixel(x, 5, mainColor);
+        for (int x = 7; x <= 16; x++) drawPixel(x, 6, mainColor);
+        for (int x = 6; x <= 15; x++) drawPixel(x, 7, mainColor);
+        for (int x = 6; x <= 14; x++) drawPixel(x, 8, mainColor);
+        for (int x = 7; x <= 13; x++) drawPixel(x, 9, mainColor);
+        for (int x = 8; x <= 12; x++) drawPixel(x, 10, mainColor);
+        // Wings (animated - majestic wingspan)
+        if (frame == 0) {
+          // Wings up
+          for (int x = 0; x <= 7; x++) drawPixel(x, 2, darkWing);
+          for (int x = 0; x <= 8; x++) drawPixel(x, 3, mainColor);
+          for (int x = 1; x <= 9; x++) drawPixel(x, 4, mainColor);
+          for (int x = 2; x <= 8; x++) drawPixel(x, 5, mainColor);
+          drawPixel(0, 0, darkWing); drawPixel(1, 0, darkWing); drawPixel(0, 1, darkWing); drawPixel(1, 1, darkWing);
+          // Right side hint
+          for (int x = 17; x <= 21; x++) drawPixel(x, 6, mainColor);
+          drawPixel(20, 5, darkWing); drawPixel(21, 5, darkWing);
+        } else {
+          // Wings down
+          for (int x = 0; x <= 7; x++) drawPixel(x, 8, darkWing);
+          for (int x = 0; x <= 8; x++) drawPixel(x, 7, mainColor);
+          for (int x = 1; x <= 8; x++) drawPixel(x, 6, mainColor);
+          for (int x = 2; x <= 7; x++) drawPixel(x, 5, mainColor);
+          drawPixel(0, 9, darkWing); drawPixel(1, 9, darkWing); drawPixel(0, 10, darkWing);
+          // Right side
+          for (int x = 15; x <= 21; x++) drawPixel(x, 9, mainColor);
+          drawPixel(20, 10, darkWing); drawPixel(21, 10, darkWing);
+        }
+        // Tail feathers
+        drawPixel(5, 9, mainColor); drawPixel(4, 10, darkWing); drawPixel(5, 10, mainColor);
+        drawPixel(3, 11, darkWing); drawPixel(4, 11, darkWing); drawPixel(5, 11, mainColor);
+        drawPixel(3, 12, darkWing); drawPixel(4, 12, darkWing);
+        // Talons (yellow)
+        for (int y = 11; y <= 14; y++) { drawPixel(9, y, yellowBeak); drawPixel(10, y, yellowBeak); }
+        drawPixel(8, 15, yellowBeak); drawPixel(9, 15, yellowBeak); drawPixel(10, 15, yellowBeak); drawPixel(11, 15, yellowBeak);
+        for (int y = 11; y <= 14; y++) { drawPixel(12, y, yellowBeak); drawPixel(13, y, yellowBeak); }
+        drawPixel(11, 15, yellowBeak); drawPixel(12, 15, yellowBeak); drawPixel(13, 15, yellowBeak); drawPixel(14, 15, yellowBeak);
+        break;
+
+      case PixelAnimal.horse:
+        const darkMane = Color(0xFF1A1A1A);
+        // Ears - 24x24
+        for (int x = 16; x <= 18; x++) drawPixel(x, 0, mainColor);
+        for (int x = 15; x <= 19; x++) drawPixel(x, 1, mainColor);
+        // Head
+        for (int x = 14; x <= 20; x++) drawPixel(x, 2, mainColor);
+        for (int x = 14; x <= 21; x++) drawPixel(x, 3, mainColor);
+        for (int x = 15; x <= 22; x++) drawPixel(x, 4, mainColor);
+        for (int x = 16; x <= 23; x++) drawPixel(x, 5, mainColor);
+        for (int x = 17; x <= 23; x++) drawPixel(x, 6, mainColor);
+        // Eye
+        drawPixel(18, 3, white); drawPixel(19, 3, white);
+        drawPixel(18, 4, white); drawPixel(19, 4, black);
+        // Nostril
+        drawPixel(22, 6, darkColor); drawPixel(23, 6, darkColor);
+        // Mane (flowing)
+        for (int y = 0; y <= 2; y++) { drawPixel(13, y, darkMane); drawPixel(14, y, darkMane); }
+        for (int y = 2; y <= 4; y++) { drawPixel(11, y, darkMane); drawPixel(12, y, darkMane); drawPixel(13, y, darkMane); }
+        for (int y = 4; y <= 6; y++) { drawPixel(9, y, darkMane); drawPixel(10, y, darkMane); drawPixel(11, y, darkMane); }
+        for (int y = 6; y <= 7; y++) { drawPixel(8, y, darkMane); drawPixel(9, y, darkMane); }
+        // Neck
+        for (int x = 11; x <= 16; x++) drawPixel(x, 7, mainColor);
+        for (int x = 10; x <= 15; x++) drawPixel(x, 8, mainColor);
+        // Body
+        for (int x = 5; x <= 16; x++) drawPixel(x, 9, mainColor);
+        for (int x = 4; x <= 16; x++) drawPixel(x, 10, mainColor);
+        for (int x = 4; x <= 15; x++) drawPixel(x, 11, mainColor);
+        for (int x = 4; x <= 14; x++) drawPixel(x, 12, mainColor);
+        for (int x = 5; x <= 13; x++) drawPixel(x, 13, mainColor);
+        // Legs (animated)
+        if (frame == 0) {
+          // Running pose 1
+          for (int y = 14; y <= 19; y++) { drawPixel(5, y, mainColor); drawPixel(6, y, mainColor); }
+          drawPixel(5, 20, darkColor); drawPixel(6, 20, darkColor);
+          for (int y = 14; y <= 19; y++) { drawPixel(11, y, mainColor); drawPixel(12, y, mainColor); }
+          drawPixel(11, 20, darkColor); drawPixel(12, 20, darkColor);
+        } else {
+          // Running pose 2
+          for (int y = 14; y <= 19; y++) { drawPixel(6, y, mainColor); drawPixel(7, y, mainColor); }
+          drawPixel(6, 20, darkColor); drawPixel(7, 20, darkColor);
+          for (int y = 14; y <= 19; y++) { drawPixel(10, y, mainColor); drawPixel(11, y, mainColor); }
+          drawPixel(10, 20, darkColor); drawPixel(11, 20, darkColor);
+        }
+        // Tail (flowing)
+        drawPixel(2, 10, darkMane); drawPixel(3, 10, darkMane);
+        drawPixel(1, 11, darkMane); drawPixel(2, 11, darkMane); drawPixel(3, 11, darkMane);
+        drawPixel(0, 12, darkMane); drawPixel(1, 12, darkMane); drawPixel(2, 12, darkMane);
+        if (frame == 0) {
+          drawPixel(0, 13, darkMane); drawPixel(1, 13, darkMane);
+          drawPixel(0, 14, darkMane);
+        } else {
+          drawPixel(1, 13, darkMane); drawPixel(2, 13, darkMane);
+          drawPixel(1, 14, darkMane);
+        }
+        break;
+
+      case PixelAnimal.rabbit:
+        const pinkInner = Color(0xFFFFB6C1);
+        // Long ears - 24x24
+        for (int y = 0; y <= 5; y++) { drawPixel(7, y, mainColor); drawPixel(8, y, mainColor); drawPixel(9, y, mainColor); }
+        for (int y = 0; y <= 5; y++) { drawPixel(13, y, mainColor); drawPixel(14, y, mainColor); drawPixel(15, y, mainColor); }
+        // Inner ear pink
+        for (int y = 1; y <= 4; y++) { drawPixel(8, y, pinkInner); drawPixel(14, y, pinkInner); }
+        // Head
+        for (int x = 6; x <= 16; x++) drawPixel(x, 6, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 7, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 8, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 9, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 10, mainColor);
+        for (int x = 6; x <= 16; x++) drawPixel(x, 11, mainColor);
+        // Eyes
+        for (int y = 7; y <= 9; y++) { drawPixel(7, y, white); drawPixel(8, y, white); drawPixel(9, y, white); }
+        for (int y = 7; y <= 9; y++) { drawPixel(13, y, white); drawPixel(14, y, white); drawPixel(15, y, white); }
+        drawPixel(8, 8, black); drawPixel(9, 8, black);
+        drawPixel(13, 8, black); drawPixel(14, 8, black);
+        // Nose & mouth
+        drawPixel(10, 9, pinkInner); drawPixel(11, 9, pinkInner); drawPixel(12, 9, pinkInner);
+        drawPixel(10, 10, darkColor); drawPixel(11, 10, pinkInner); drawPixel(12, 10, darkColor);
+        // Whiskers (dots)
+        drawPixel(4, 9, darkColor); drawPixel(5, 9, darkColor);
+        drawPixel(17, 9, darkColor); drawPixel(18, 9, darkColor);
+        // Body
+        for (int x = 6; x <= 16; x++) drawPixel(x, 12, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 13, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 14, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 15, mainColor);
+        for (int x = 6; x <= 16; x++) drawPixel(x, 16, mainColor);
+        // Fluffy tail
+        for (int y = 14; y <= 16; y++) { drawPixel(18, y, white); drawPixel(19, y, white); drawPixel(20, y, white); }
+        drawPixel(19, 13, white); drawPixel(19, 17, white);
+        // Legs (hopping animation)
+        if (frame == 0) {
+          // Crouched
+          for (int y = 17; y <= 18; y++) { drawPixel(6, y, mainColor); drawPixel(7, y, mainColor); drawPixel(8, y, mainColor); }
+          for (int y = 17; y <= 18; y++) { drawPixel(14, y, mainColor); drawPixel(15, y, mainColor); drawPixel(16, y, mainColor); }
+        } else {
+          // Extended
+          for (int y = 17; y <= 20; y++) { drawPixel(5, y, mainColor); drawPixel(6, y, mainColor); }
+          for (int y = 17; y <= 20; y++) { drawPixel(16, y, mainColor); drawPixel(17, y, mainColor); }
+        }
+        break;
+
+      case PixelAnimal.fox:
+        const whiteChest = Colors.white;
+        const blackNose = Colors.black;
+        // Ears (pointed) - 24x24
+        for (int y = 0; y <= 2; y++) { drawPixel(4, y, mainColor); drawPixel(5, y, mainColor); drawPixel(6, y, mainColor); }
+        for (int y = 0; y <= 2; y++) { drawPixel(15, y, mainColor); drawPixel(16, y, mainColor); drawPixel(17, y, mainColor); }
+        // Inner ear
+        drawPixel(5, 1, darkColor); drawPixel(5, 2, darkColor);
+        drawPixel(16, 1, darkColor); drawPixel(16, 2, darkColor);
+        // Head
+        for (int x = 5; x <= 17; x++) drawPixel(x, 3, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 4, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 5, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 6, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 7, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 8, mainColor);
+        // White muzzle
+        for (int x = 8; x <= 14; x++) drawPixel(x, 6, whiteChest);
+        for (int x = 9; x <= 13; x++) drawPixel(x, 7, whiteChest);
+        for (int x = 10; x <= 12; x++) drawPixel(x, 8, whiteChest);
+        // Eyes
+        for (int y = 4; y <= 5; y++) { drawPixel(6, y, white); drawPixel(7, y, white); drawPixel(8, y, white); }
+        for (int y = 4; y <= 5; y++) { drawPixel(14, y, white); drawPixel(15, y, white); drawPixel(16, y, white); }
+        drawPixel(7, 5, black); drawPixel(8, 5, black);
+        drawPixel(14, 5, black); drawPixel(15, 5, black);
+        // Eye shine
+        drawPixel(6, 4, Color(0xFFADD8E6)); drawPixel(14, 4, Color(0xFFADD8E6));
+        // Nose
+        drawPixel(10, 6, blackNose); drawPixel(11, 6, blackNose); drawPixel(12, 6, blackNose);
+        // Body
+        for (int x = 5; x <= 17; x++) drawPixel(x, 9, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 10, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 11, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 12, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 13, mainColor);
+        // White chest/belly
+        for (int x = 8; x <= 14; x++) drawPixel(x, 9, whiteChest);
+        for (int x = 8; x <= 14; x++) drawPixel(x, 10, whiteChest);
+        for (int x = 9; x <= 13; x++) drawPixel(x, 11, whiteChest);
+        for (int x = 10; x <= 12; x++) drawPixel(x, 12, whiteChest);
+        // Legs
+        if (frame == 0) {
+          for (int y = 14; y <= 18; y++) { drawPixel(5, y, mainColor); drawPixel(6, y, mainColor); }
+          drawPixel(5, 19, black); drawPixel(6, 19, black);
+          for (int y = 14; y <= 18; y++) { drawPixel(15, y, mainColor); drawPixel(16, y, mainColor); }
+          drawPixel(15, 19, black); drawPixel(16, 19, black);
+        } else {
+          for (int y = 14; y <= 18; y++) { drawPixel(6, y, mainColor); drawPixel(7, y, mainColor); }
+          drawPixel(6, 19, black); drawPixel(7, 19, black);
+          for (int y = 14; y <= 18; y++) { drawPixel(14, y, mainColor); drawPixel(15, y, mainColor); }
+          drawPixel(14, 19, black); drawPixel(15, 19, black);
+        }
+        // Fluffy tail with white tip
+        drawPixel(19, 10, mainColor); drawPixel(20, 9, mainColor); drawPixel(20, 10, mainColor);
+        drawPixel(21, 8, mainColor); drawPixel(21, 9, mainColor); drawPixel(21, 10, mainColor);
+        drawPixel(22, 7, mainColor); drawPixel(22, 8, mainColor);
+        drawPixel(23, 6, whiteChest); drawPixel(23, 7, whiteChest); drawPixel(22, 9, whiteChest);
+        break;
+
+      case PixelAnimal.frog:
+        const lightGreen = Color(0xFF90EE90);
+        const frogYellow = Color(0xFFFFEB3B);
+        // Big eyes (bulging) - 24x24
+        for (int x = 4; x <= 8; x++) drawPixel(x, 0, mainColor);
+        for (int x = 14; x <= 18; x++) drawPixel(x, 0, mainColor);
+        for (int x = 3; x <= 9; x++) drawPixel(x, 1, mainColor);
+        for (int x = 13; x <= 19; x++) drawPixel(x, 1, mainColor);
+        // Eye whites and pupils
+        for (int y = 0; y <= 1; y++) { drawPixel(5, y, white); drawPixel(6, y, white); drawPixel(7, y, white); }
+        for (int y = 0; y <= 1; y++) { drawPixel(15, y, white); drawPixel(16, y, white); drawPixel(17, y, white); }
+        drawPixel(6, 1, black); drawPixel(7, 1, black);
+        drawPixel(15, 1, black); drawPixel(16, 1, black);
+        // Head
+        for (int x = 4; x <= 18; x++) drawPixel(x, 2, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 3, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 4, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 5, mainColor);
+        // Mouth line
+        for (int x = 6; x <= 16; x++) drawPixel(x, 5, darkColor);
+        // Light belly on head
+        for (int x = 7; x <= 15; x++) drawPixel(x, 4, lightGreen);
+        // Body
+        for (int x = 4; x <= 18; x++) drawPixel(x, 6, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 7, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 8, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 9, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 10, mainColor);
+        // Yellow belly
+        for (int x = 7; x <= 15; x++) drawPixel(x, 7, frogYellow);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 8, frogYellow);
+        for (int x = 8; x <= 14; x++) drawPixel(x, 9, frogYellow);
+        // Front legs
+        drawPixel(2, 7, mainColor); drawPixel(1, 8, mainColor); drawPixel(0, 9, mainColor);
+        drawPixel(20, 7, mainColor); drawPixel(21, 8, mainColor); drawPixel(22, 9, mainColor);
+        // Back legs (jumping animation)
+        if (frame == 0) {
+          // Crouched
+          drawPixel(3, 11, mainColor); drawPixel(2, 12, mainColor); drawPixel(1, 13, mainColor); drawPixel(0, 14, mainColor);
+          drawPixel(19, 11, mainColor); drawPixel(20, 12, mainColor); drawPixel(21, 13, mainColor); drawPixel(22, 14, mainColor);
+          // Webbed feet
+          drawPixel(0, 15, mainColor); drawPixel(1, 15, mainColor); drawPixel(2, 15, mainColor);
+          drawPixel(20, 15, mainColor); drawPixel(21, 15, mainColor); drawPixel(22, 15, mainColor);
+        } else {
+          // Extended jump
+          drawPixel(2, 11, mainColor); drawPixel(1, 12, mainColor); drawPixel(0, 13, mainColor);
+          drawPixel(0, 14, mainColor); drawPixel(0, 15, mainColor); drawPixel(0, 16, mainColor);
+          drawPixel(20, 11, mainColor); drawPixel(21, 12, mainColor); drawPixel(22, 13, mainColor);
+          drawPixel(22, 14, mainColor); drawPixel(22, 15, mainColor); drawPixel(22, 16, mainColor);
+          // Webbed feet spread
+          drawPixel(0, 17, mainColor); drawPixel(1, 17, mainColor); drawPixel(2, 17, mainColor);
+          drawPixel(20, 17, mainColor); drawPixel(21, 17, mainColor); drawPixel(22, 17, mainColor);
+        }
+        break;
+
+      case PixelAnimal.owl:
+        const cream = Color(0xFFFFF8DC);
+        const darkBrown = Color(0xFF3E2723);
+        const owlYellow = Color(0xFFFFD700);
+        // Ear tufts - 24x24
+        for (int y = 0; y <= 2; y++) { drawPixel(4, y, mainColor); drawPixel(5, y, mainColor); }
+        for (int y = 0; y <= 2; y++) { drawPixel(17, y, mainColor); drawPixel(18, y, mainColor); }
+        drawPixel(6, 1, mainColor); drawPixel(6, 2, mainColor);
+        drawPixel(16, 1, mainColor); drawPixel(16, 2, mainColor);
+        // Head
+        for (int x = 5; x <= 17; x++) drawPixel(x, 3, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 4, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 5, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 6, mainColor);
+        for (int x = 3; x <= 19; x++) drawPixel(x, 7, mainColor);
+        for (int x = 4; x <= 18; x++) drawPixel(x, 8, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 9, mainColor);
+        // Facial disc (lighter)
+        for (int x = 5; x <= 9; x++) { drawPixel(x, 5, cream); drawPixel(x, 6, cream); }
+        for (int x = 13; x <= 17; x++) { drawPixel(x, 5, cream); drawPixel(x, 6, cream); }
+        // Big eyes
+        for (int y = 5; y <= 7; y++) { drawPixel(6, y, white); drawPixel(7, y, white); drawPixel(8, y, white); drawPixel(9, y, white); }
+        for (int y = 5; y <= 7; y++) { drawPixel(13, y, white); drawPixel(14, y, white); drawPixel(15, y, white); drawPixel(16, y, white); }
+        // Yellow iris
+        drawPixel(7, 6, owlYellow); drawPixel(8, 6, owlYellow);
+        drawPixel(14, 6, owlYellow); drawPixel(15, 6, owlYellow);
+        // Pupils
+        drawPixel(8, 6, black); drawPixel(14, 6, black);
+        // Beak
+        drawPixel(10, 7, darkBrown); drawPixel(11, 7, darkBrown); drawPixel(12, 7, darkBrown);
+        drawPixel(11, 8, darkBrown);
+        // Body
+        for (int x = 6; x <= 16; x++) drawPixel(x, 10, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 11, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 12, mainColor);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 13, mainColor);
+        for (int x = 6; x <= 16; x++) drawPixel(x, 14, mainColor);
+        // Chest pattern
+        for (int x = 8; x <= 14; x++) drawPixel(x, 10, cream);
+        for (int x = 8; x <= 14; x++) drawPixel(x, 11, cream);
+        for (int x = 9; x <= 13; x++) drawPixel(x, 12, cream);
+        for (int x = 10; x <= 12; x++) drawPixel(x, 13, cream);
+        // Chest spots
+        drawPixel(9, 11, mainColor); drawPixel(11, 11, mainColor); drawPixel(13, 11, mainColor);
+        drawPixel(10, 12, mainColor); drawPixel(12, 12, mainColor);
+        // Wings (animated)
+        if (frame == 0) {
+          // Wings tucked
+          for (int y = 10; y <= 13; y++) { drawPixel(4, y, darkBrown); drawPixel(5, y, mainColor); }
+          for (int y = 10; y <= 13; y++) { drawPixel(17, y, mainColor); drawPixel(18, y, darkBrown); }
+        } else {
+          // Wings spread
+          for (int y = 8; y <= 11; y++) { drawPixel(2, y, darkBrown); drawPixel(3, y, mainColor); }
+          drawPixel(1, 7, darkBrown); drawPixel(0, 6, darkBrown); drawPixel(1, 8, mainColor); drawPixel(0, 7, mainColor);
+          for (int y = 8; y <= 11; y++) { drawPixel(19, y, mainColor); drawPixel(20, y, darkBrown); }
+          drawPixel(21, 7, darkBrown); drawPixel(22, 6, darkBrown); drawPixel(21, 8, mainColor); drawPixel(22, 7, mainColor);
+        }
+        // Feet/talons
+        for (int y = 15; y <= 17; y++) { drawPixel(8, y, darkBrown); drawPixel(9, y, darkBrown); }
+        for (int y = 15; y <= 17; y++) { drawPixel(13, y, darkBrown); drawPixel(14, y, darkBrown); }
+        drawPixel(7, 18, darkBrown); drawPixel(8, 18, darkBrown); drawPixel(9, 18, darkBrown); drawPixel(10, 18, darkBrown);
+        drawPixel(12, 18, darkBrown); drawPixel(13, 18, darkBrown); drawPixel(14, 18, darkBrown); drawPixel(15, 18, darkBrown);
+        break;
+
+      case PixelAnimal.penguin:
+        const penguinWhite = Colors.white;
+        const penguinOrange = Color(0xFFFF8C00);
+        const penguinBlack = Colors.black;
+        // Head (black) - 24x24
+        for (int x = 8; x <= 14; x++) drawPixel(x, 0, penguinBlack);
+        for (int x = 6; x <= 16; x++) drawPixel(x, 1, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 2, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 3, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 4, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 5, penguinBlack);
+        for (int x = 6; x <= 16; x++) drawPixel(x, 6, penguinBlack);
+        // White face patch
+        for (int x = 8; x <= 14; x++) drawPixel(x, 3, penguinWhite);
+        for (int x = 8; x <= 14; x++) drawPixel(x, 4, penguinWhite);
+        for (int x = 9; x <= 13; x++) drawPixel(x, 5, penguinWhite);
+        // Eyes
+        drawPixel(9, 3, penguinBlack); drawPixel(10, 3, penguinBlack);
+        drawPixel(12, 3, penguinBlack); drawPixel(13, 3, penguinBlack);
+        // Eye shine
+        drawPixel(9, 3, Color(0xFF4169E1));
+        drawPixel(13, 3, Color(0xFF4169E1));
+        // Beak
+        drawPixel(10, 5, penguinOrange); drawPixel(11, 5, penguinOrange); drawPixel(12, 5, penguinOrange);
+        drawPixel(10, 6, penguinOrange); drawPixel(11, 6, penguinOrange); drawPixel(12, 6, penguinOrange);
+        // Body
+        for (int x = 6; x <= 16; x++) drawPixel(x, 7, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 8, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 9, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 10, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 11, penguinBlack);
+        for (int x = 5; x <= 17; x++) drawPixel(x, 12, penguinBlack);
+        for (int x = 6; x <= 16; x++) drawPixel(x, 13, penguinBlack);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 14, penguinBlack);
+        // White belly
+        for (int x = 8; x <= 14; x++) drawPixel(x, 7, penguinWhite);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 8, penguinWhite);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 9, penguinWhite);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 10, penguinWhite);
+        for (int x = 7; x <= 15; x++) drawPixel(x, 11, penguinWhite);
+        for (int x = 8; x <= 14; x++) drawPixel(x, 12, penguinWhite);
+        for (int x = 9; x <= 13; x++) drawPixel(x, 13, penguinWhite);
+        // Flippers (animated - waddling)
+        if (frame == 0) {
+          // Flippers out
+          for (int y = 8; y <= 12; y++) { drawPixel(3, y, penguinBlack); drawPixel(4, y, penguinBlack); }
+          for (int y = 8; y <= 12; y++) { drawPixel(18, y, penguinBlack); drawPixel(19, y, penguinBlack); }
+          drawPixel(2, 10, penguinBlack); drawPixel(2, 11, penguinBlack);
+          drawPixel(20, 10, penguinBlack); drawPixel(20, 11, penguinBlack);
+        } else {
+          // Flippers down
+          for (int y = 9; y <= 14; y++) { drawPixel(4, y, penguinBlack); drawPixel(5, y, penguinBlack); }
+          for (int y = 9; y <= 14; y++) { drawPixel(17, y, penguinBlack); drawPixel(18, y, penguinBlack); }
+          drawPixel(3, 13, penguinBlack); drawPixel(3, 14, penguinBlack);
+          drawPixel(19, 13, penguinBlack); drawPixel(19, 14, penguinBlack);
+        }
+        // Feet
+        for (int x = 8; x <= 10; x++) { drawPixel(x, 15, penguinOrange); drawPixel(x, 16, penguinOrange); }
+        for (int x = 12; x <= 14; x++) { drawPixel(x, 15, penguinOrange); drawPixel(x, 16, penguinOrange); }
+        drawPixel(7, 17, penguinOrange); drawPixel(8, 17, penguinOrange); drawPixel(9, 17, penguinOrange); drawPixel(10, 17, penguinOrange); drawPixel(11, 17, penguinOrange);
+        drawPixel(11, 17, penguinOrange); drawPixel(12, 17, penguinOrange); drawPixel(13, 17, penguinOrange); drawPixel(14, 17, penguinOrange); drawPixel(15, 17, penguinOrange);
+        break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant PixelAnimalPainter oldDelegate) {
+    return oldDelegate.frame != frame || oldDelegate.facingRight != facingRight;
+  }
+}
+
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  
+  // Easter egg variables
+  Timer? _easterEggTimer;
+  bool _showAnimal = false;
+  PixelAnimal _currentAnimal = PixelAnimal.cat;
+  Color _animalColor = Colors.orange;
+  late AnimationController _jumpController;
+  late AnimationController _frameController;
+  final Random _random = Random();
+  
+  // Jump positions (will be calculated based on screen)
+  List<Offset> _jumpPositions = [];
+  int _currentJumpIndex = 0;
+  bool _facingRight = true;
+  
+  // Animal colors
+  final Map<PixelAnimal, Color> _animalColors = {
+    PixelAnimal.cat: Colors.orange,
+    PixelAnimal.bird: Colors.blue,
+    PixelAnimal.monkey: Colors.brown,
+    PixelAnimal.eagle: Colors.amber.shade800,
+    PixelAnimal.horse: Colors.brown.shade700,
+    PixelAnimal.rabbit: Colors.grey.shade400,
+    PixelAnimal.fox: Colors.deepOrange,
+    PixelAnimal.frog: Colors.green,
+    PixelAnimal.owl: Colors.brown.shade600,
+    PixelAnimal.penguin: Color(0xFF1C1C1C), // Dark color - penguin uses its own black/white
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _initEasterEgg();
+  }
+
+  void _initEasterEgg() {
+    // Main jump animation controller - 3 seconds total
+    _jumpController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+    
+    // Frame animation for walking/flying animation
+    _frameController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _jumpController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _showAnimal = false;
+        });
+      }
+    });
+    
+    // Start the 20-second timer for the easter egg
+    _easterEggTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      _triggerEasterEgg();
+    });
+    
+    // Trigger first one after 5 seconds
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) _triggerEasterEgg();
+    });
+  }
+
+  void _triggerEasterEgg() {
+    if (!mounted) return;
+    
+    // Random animal
+    final animals = PixelAnimal.values;
+    _currentAnimal = animals[_random.nextInt(animals.length)];
+    _animalColor = _animalColors[_currentAnimal] ?? Colors.orange;
+    
+    // Generate jump positions based on screen size
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Randomly choose entry direction (left or right)
+    final enterFromLeft = _random.nextBool();
+    
+    // Generate random jump points across the screen that work on any tab
+    final List<Offset> middleJumps = [];
+    final numJumps = 4 + _random.nextInt(3); // 4-6 jumps
+    
+    for (int i = 0; i < numJumps; i++) {
+      middleJumps.add(Offset(
+        screenWidth * (0.1 + _random.nextDouble() * 0.8), // 10% to 90% of width
+        screenHeight * (0.1 + _random.nextDouble() * 0.6), // 10% to 70% of height
+      ));
+    }
+    
+    // Sort by x position for more natural movement
+    if (enterFromLeft) {
+      middleJumps.sort((a, b) => a.dx.compareTo(b.dx));
+    } else {
+      middleJumps.sort((a, b) => b.dx.compareTo(a.dx));
+    }
+    
+    // Create full jump path with entry and exit
+    _jumpPositions = [
+      // Start off-screen
+      Offset(enterFromLeft ? -50 : screenWidth + 50, screenHeight * (0.2 + _random.nextDouble() * 0.3)),
+      // Jump through random positions
+      ...middleJumps,
+      // Exit off-screen (opposite side)
+      Offset(enterFromLeft ? screenWidth + 50 : -50, screenHeight * (0.2 + _random.nextDouble() * 0.3)),
+    ];
+    
+    _currentJumpIndex = 0;
+    _facingRight = enterFromLeft;
+    
+    setState(() {
+      _showAnimal = true;
+    });
+    
+    _jumpController.reset();
+    _jumpController.forward();
+  }
+
+  Offset _getCurrentPosition(double progress) {
+    if (_jumpPositions.isEmpty) return Offset.zero;
+    
+    final totalJumps = _jumpPositions.length - 1;
+    final jumpProgress = progress * totalJumps;
+    final currentJump = jumpProgress.floor().clamp(0, totalJumps - 1);
+    final jumpFraction = jumpProgress - currentJump;
+    
+    final start = _jumpPositions[currentJump];
+    final end = _jumpPositions[(currentJump + 1).clamp(0, _jumpPositions.length - 1)];
+    
+    // Update facing direction
+    if (end.dx > start.dx) {
+      _facingRight = true;
+    } else if (end.dx < start.dx) {
+      _facingRight = false;
+    }
+    
+    // Interpolate position with arc (parabolic jump)
+    final x = start.dx + (end.dx - start.dx) * jumpFraction;
+    final baseY = start.dy + (end.dy - start.dy) * jumpFraction;
+    // Add arc - highest at middle of jump
+    final arcHeight = -80 * sin(jumpFraction * pi);
+    final y = baseY + arcHeight;
+    
+    return Offset(x, y);
+  }
+
+  @override
+  void dispose() {
+    _easterEggTimer?.cancel();
+    _jumpController.dispose();
+    _frameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +914,36 @@ class _HomeScreenState extends State<HomeScreen> {
       const InfoScreen(),
     ];
     return Scaffold(
-      body: screens[_currentIndex],
+      body: Stack(
+        children: [
+          screens[_currentIndex],
+          // Easter egg pixelated animal overlay - IgnorePointer lets touches pass through
+          if (_showAnimal)
+            AnimatedBuilder(
+              animation: Listenable.merge([_jumpController, _frameController]),
+              builder: (context, child) {
+                final position = _getCurrentPosition(_jumpController.value);
+                final frame = (_frameController.value > 0.5) ? 1 : 0;
+                
+                return Positioned(
+                  left: position.dx - 24,
+                  top: position.dy - 24,
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      size: const Size(48, 48),
+                      painter: PixelAnimalPainter(
+                        animal: _currentAnimal,
+                        color: _animalColor,
+                        facingRight: _facingRight,
+                        frame: frame,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -461,50 +1287,53 @@ class _ShiftCalendarScreenState extends State<ShiftCalendarScreen> {
   }
 
   void _showNoteDialog(DateTime date) {
-    String noteText = '';
-    _getNote(date).then((note) {
+    _getNote(date).then((existingNote) {
       if (!mounted) return;
-      noteText = note ?? '';
+      String noteText = existingNote ?? '';
+      final hasExistingNote = existingNote != null && existingNote.isNotEmpty;
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Note for ${date.year}-${date.month}-${date.day}'),
-          content: TextField(
-            controller: TextEditingController(text: noteText),
-            maxLines: 4,
-            onChanged: (value) {
-              noteText = value;
-            },
-            decoration: const InputDecoration(
-              hintText: 'Add a note for this day...',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            if (noteText.isNotEmpty)
-              TextButton(
-                onPressed: () async {
-                  await _saveNote(date, '');
-                  setState(() {});
-                  // ignore: use_build_context_synchronously
-                  if (mounted) Navigator.pop(context);
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Note for ${date.day}/${date.month}/${date.year}'),
+              content: TextField(
+                controller: TextEditingController(text: noteText),
+                maxLines: 4,
+                onChanged: (value) {
+                  noteText = value;
                 },
-                child: const Text('Delete'),
+                decoration: const InputDecoration(
+                  hintText: 'Add a note for this day...',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            TextButton(
-              onPressed: () async {
-                await _saveNote(date, noteText);
-                setState(() {});
-                // ignore: use_build_context_synchronously
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                if (hasExistingNote)
+                  TextButton(
+                    onPressed: () async {
+                      await _saveNote(date, '');
+                      setState(() {});
+                      if (mounted) Navigator.pop(dialogContext);
+                    },
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Delete'),
+                  ),
+                TextButton(
+                  onPressed: () async {
+                    await _saveNote(date, noteText);
+                    setState(() {});
+                    if (mounted) Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         ),
       );
     });
@@ -1344,9 +2173,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: const Text('Apply Cycle Day'),
           ),
+          const SizedBox(height: 30),
+          const Divider(),
+          const SizedBox(height: 20),
+          const Text(
+            'Data Management',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text('Clear All Data'),
+            subtitle: const Text('Reset app to default settings'),
+            onTap: () => _showClearDataDialog(),
+          ),
         ],
       ),
     );
+  }
+
+  void _showClearDataDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Clear All Data?'),
+          ],
+        ),
+        content: const Text(
+          'This will reset the app to its default settings and delete:\n\n'
+          '• All saved notes\n'
+          '• Custom shift colors\n'
+          '• Shift pattern settings\n'
+          '• Shift hours\n'
+          '• Vacation records\n'
+          '• Time clock records\n'
+          '• All preferences\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _clearAllData();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear All Data'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _clearAllData() async {
+    // Clear all SharedPreferences data
+    await _prefs.clear();
+    
+    // Reset to default values - use ARGB format matching _saveColor method
+    await _prefs.setString('color_morning', _colorToArgbString(Colors.blue));
+    await _prefs.setString('color_evening', _colorToArgbString(Colors.orange));
+    await _prefs.setString('color_night', _colorToArgbString(Colors.black));
+    await _prefs.setString('shift_pattern', '0,1,2,3,3');
+    await _prefs.setString('morning_start', '7:00 AM');
+    await _prefs.setString('morning_end', '3:00 PM');
+    await _prefs.setString('evening_start', '3:00 PM');
+    await _prefs.setString('evening_end', '11:00 PM');
+    await _prefs.setString('night_start', '11:00 PM');
+    await _prefs.setString('night_end', '7:00 AM');
+    await _prefs.setString('cycle_start_date', '2026-02-01');
+    await _prefs.setString('selectedShift', 'A');
+    await _prefs.setBool('notifications_enabled', true);
+    await _prefs.setString('theme_mode', 'system');
+    
+    // Reset theme to system
+    widget.onThemeModeChanged(ThemeMode.system);
+    
+    // Reload settings
+    await _loadSettings();
+    
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('All data cleared! App reset to defaults.'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  String _colorToArgbString(Color color) {
+    final a = (color.a * 255.0).round().clamp(0, 255);
+    final r = (color.r * 255.0).round().clamp(0, 255);
+    final g = (color.g * 255.0).round().clamp(0, 255);
+    final b = (color.b * 255.0).round().clamp(0, 255);
+    final argbInt = (a << 24) | (r << 16) | (g << 8) | b;
+    return argbInt.toString();
   }
 
   Color _getDutyColorFromType(int dutyType) {
